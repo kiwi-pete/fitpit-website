@@ -147,7 +147,7 @@
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>No commitment</li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Perfect for visitors</li>
           </ul>
-          <a href="https://wa.me/255779630403?text=Hi!%20I'm%20interested%20in%20a%20Daily%20Pass." class="btn btn-outline" target="_blank" rel="noopener noreferrer">Get Started</a>
+          <button id="open-daily-pass-modal" class="btn btn-outline">Learn More</button>
         </div>
 
         <!-- Monthly Pass (Featured) -->
@@ -208,12 +208,229 @@
         </div>
       </div>
 
-      <div class="membership-agreement reveal" style="text-align: center; margin-top: var(--space-2xl);">
-        <a href="https://www.fitpitznz.com/_files/ugd/1fe5eb_a1f83f508fa346bab800b3972b317d0e.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-glass">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-          Membership Agreement Form
-        </a>
-      </div>
+      <!-- Embedded Membership Agreement Form -->
+      <div class="homepage-agreement-container reveal" id="homepage-agreement-section" style="margin-top: var(--space-3xl);">
+        <div class="homepage-agreement-card">
+          <div class="policy-header-container">
+            <h3>Fit Pit Membership Agreement</h3>
+            <a href="https://www.fitpitznz.com/_files/ugd/1fe5eb_a1f83f508fa346bab800b3972b317d0e.pdf" target="_blank" rel="noopener noreferrer" class="pdf-link btn-download-pdf">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF Agreement
+            </a>
+          </div>
+          <p class="section-subtitle">Please read the agreement terms below, scroll to the bottom to unlock, fill in your details, and sign.</p>
+
+          <!-- Policy Scroll Container -->
+          <div class="policy-box" id="homepage-policy-box" tabindex="0">
+            <h5>Membership Agreement</h5>
+            <p>Welcome to Fit Pit Zanzibar! We are excited to have you as a member of our fitness community. Before you begin your journey with us, please review and acknowledge the following terms and conditions of your membership. By signing this form, you agree to adhere to these guidelines to ensure a safe and enjoyable experience for all members.</p>
+            
+            <h6>1. Membership Terms</h6>
+            <ul>
+              <li><strong>Membership Duration:</strong> All memberships are based on calendar dates. For example, if you purchase a one-month membership starting on September 15th, it will be valid until October 15th. This period is fixed and does not extend beyond these dates, regardless of the number of days you attend the gym.</li>
+              <li><strong>Non-Cancellation Policy:</strong> Once a membership is purchased, it cannot be cancelled or terminated early. The membership remains active for the entire duration as specified at the time of purchase.</li>
+              <li><strong>No Carry-Over Policy:</strong> If you do not use your membership within the specified dates, the remaining days or sessions cannot be carried over to the next month or future dates. It is important to utilize your membership within its active period.</li>
+              <li><strong>Non-Transferable:</strong> Memberships are non-transferable and solely for the registered individual. Unauthorized use of membership will result in immediate cancellation, with membership fees withheld as a penalty.</li>
+              <li><strong>No Refunds:</strong> We do not offer refunds for any reason. Once a membership or service is purchased, the payment is final and non-refundable under all circumstances.</li>
+              <li><strong>Exceptions for Gym Closures:</strong> The only exception to the above policies is if we are required to close the gym due to circumstances beyond our control, such as natural disasters, emergencies, and any electrical maintenance where gym usage would be deemed unsafe. In such cases, we will provide a day pass for each day the gym is closed, which can be used once the gym reopens. Please note that even in these circumstances, no refunds will be issued.</li>
+            </ul>
+
+            <h6>2. Access Keys</h6>
+            <ul>
+              <li>Entry to Fit Pit Zanzibar is controlled by electronic locks and access cards. Members must carry their access card when using the gym services.</li>
+              <li>Access to the gym will be denied if a member fails to swipe their access key upon arrival.</li>
+              <li>In case of loss or theft of the access card, inform gym staff immediately for deactivation and replacement. A replacement fee of $15 USD per access card will apply.</li>
+            </ul>
+
+            <h6>3. Membership Renewals</h6>
+            <ul>
+              <li>To ensure uninterrupted key access to Fit Pit Zanzibar at the point of renewal, we recommend renewing your membership 14 days prior to the date of expiration.</li>
+              <li>Membership prices are subject to change upon the time of renewing your membership.</li>
+              <li>Day pass prices are subject to change at any time.</li>
+              <li>A new Membership Agreement form must be signed by the member at the time of renewing a membership.</li>
+            </ul>
+
+            <h6>4. CCTV Cameras</h6>
+            <ul>
+              <li>All areas of Fit Pit (excluding locker rooms and washrooms) are under CCTV surveillance for the safety of our members. The management reserves the right to review footage in case of any misconduct on the premises.</li>
+            </ul>
+
+            <h6>5. Gym Etiquette - Golden Rules</h6>
+            <ul>
+              <li>Women’s workout hours are from 10 am to 12 pm on Tuesdays and Thursdays. No men will be permitted to use the gym during these hours.</li>
+              <li><strong>Food and Beverages:</strong> Only bottled water or sports drinks are allowed in the gym. Dispose of all litter, including used paper towels and water bottles, appropriately.</li>
+              <li><strong>Personal Belongings:</strong> Store personal items such as shoes, purses, and jackets in the provided lockers. These should not be placed in workout areas or near equipment. Sign in with the gym staff to receive a locker and key, which must be returned after use. Fit Pit management is not liable for personal items stored in lockers. A $10 USD fee applies for lost locker keys, as it necessitates replacing the lock/key set.</li>
+              <li><strong>Appropriate Attire:</strong> Only gym wear with athletic trainers is permitted. Flip-flops, sandals, and beachwear are not allowed. Management reserves the right to deny access to members not complying with this policy.</li>
+              <li><strong>Equipment Usage:</strong> Do not "save" machines or equipment for yourself or others by placing items on them. Always re-rack weights and return equipment to its proper place. Do not rest equipment against walls, windows, or mirrors. Members are liable for costs related to damages caused by inappropriate use of equipment.</li>
+              <li><strong>Photography:</strong> Progress selfies are encouraged, although please refrain from filming or including other members in any photo or video content without their consent.</li>
+              <li><strong>Commercial Photography:</strong> Commercial photography is not allowed within the gym premises without prior permission from our marketing team.</li>
+              <li><strong>Age Requirement:</strong> The minimum age for access to Fit Pit Zanzibar is 17 years.</li>
+              <li><strong>Music Policy:</strong> Workout music will be playing from speakers in the gym. The volume and selection of music are predetermined. If you prefer different music, please use your personal earphones. Requests to change the gym's music or volume will not be entertained.</li>
+              <li><strong>Towels and Accessories:</strong> Towels and accessories are to be used within the gym premises only. Please do not carry them home.</li>
+              <li><strong>Respect for Other Members:</strong> Fit Pit is committed to maintaining a positive and supportive environment for everyone. All members are expected to treat others with respect and courtesy at all times. This includes respecting personal space, using appropriate language, keeping noise levels down, and following gym etiquette. Harassment, discrimination, or any form of disrespectful behaviour will not be tolerated and may result in the termination of your membership without a refund.</li>
+              <li><strong>Membership Termination:</strong> Fit Pit Zanzibar management reserves the right to terminate a membership with immediate effect if members are found not adhering to the rules and terms stated in this agreement.</li>
+            </ul>
+
+            <h6>6. Privacy</h6>
+            <ul>
+              <li><strong>Government ID Requirement:</strong> When signing up for a membership at Fit Pit, members are required to provide a copy of their government-issued ID. This is necessary for verification purposes and to ensure the security and integrity of our membership records.</li>
+              <li><strong>Privacy Practices:</strong> Fit Pit is committed to protecting your privacy. We will not share your personal information, including your ID, contact details, and any other data you provide, with any company, third party, or external entity without your explicit consent, unless required by law. Your information is securely stored and used solely for internal purposes related to your membership and communication with Fit Pit.</li>
+            </ul>
+
+            <h6>7. Liability</h6>
+            <ul>
+              <li>By using the facilities at Fit Pit, members acknowledge and accept the inherent risks associated with physical exercise, including potential injuries or accidents. Fit Pit Zanzibar is not liable for any injuries, accidents, or health issues that may occur while using the gym facilities or participating in any activities including but not limited to fitness classes and personal training sessions.</li>
+              <li><strong>Power Outages:</strong> In Zanzibar, power outages are common and beyond our control, despite the measures we have in place, such as generators, UPS systems, and stabilizers. Fit Pit cannot be held responsible for any inconvenience, injury or disruption caused by power fluctuations or outages.</li>
+            </ul>
+          </div>
+
+          <!-- Locked/Scroll Alert Notice -->
+          <div class="scroll-alert" id="homepage-scroll-alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            Please scroll to the bottom of the Membership Agreement to unlock registration.
+          </div>
+
+          <!-- Homepage Form (Locked initially) -->
+          <form id="homepage-agreement-form" class="homepage-form-grid locked" novalidate>
+            <!-- Personal details columns -->
+            <div class="homepage-form-fields">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="homepage-first-name">First Name *</label>
+                  <input type="text" id="homepage-first-name" name="first_name" placeholder="John" autocomplete="given-name" required disabled>
+                  <div class="error-msg"></div>
+                </div>
+                <div class="form-group">
+                  <label for="homepage-last-name">Last Name *</label>
+                  <input type="text" id="homepage-last-name" name="last_name" placeholder="Doe" autocomplete="family-name" required disabled>
+                  <div class="error-msg"></div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="homepage-email">Email *</label>
+                <input type="email" id="homepage-email" name="email" placeholder="john.doe@example.com" autocomplete="email" inputmode="email" required disabled>
+                <div class="error-msg"></div>
+              </div>
+              <div class="form-group">
+                <label for="homepage-phone">Phone Number *</label>
+                <input type="tel" id="homepage-phone" name="phone" placeholder="+255 779 630 403" autocomplete="tel" inputmode="tel" required disabled>
+                <div class="error-msg"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="homepage-membership-term">Membership Term *</label>
+                  <select id="homepage-membership-term" name="membership_term" required disabled>
+                    <option value="">Select a term...</option>
+                    <option value="1 Month ($85 USD)">1 Month ($85 USD)</option>
+                    <option value="3 Months ($230 USD)">3 Months ($230 USD)</option>
+                    <option value="6 Months ($365 USD)">6 Months ($365 USD)</option>
+                    <option value="1 Year ($605 USD)">1 Year ($605 USD)</option>
+                  </select>
+                  <div class="error-msg"></div>
+                </div>
+                <div class="form-group">
+                  <label for="homepage-start-date">Start Date *</label>
+                  <input type="date" id="homepage-start-date" name="membership_start_date" required disabled>
+                  <div class="error-msg"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Upload ID & Signature columns -->
+            <div class="homepage-form-verification">
+              <div class="form-group">
+                <label>Copy of Government ID *</label>
+                <p class="field-desc">Please upload your ID photo or PDF.</p>
+                
+                <div class="drag-drop-zone" id="homepage-id-drop-zone" style="pointer-events: none;">
+                  <input type="file" id="homepage-id-file" name="copy_of_id" accept="image/*,application/pdf" class="visually-hidden" required disabled>
+                  <div class="drop-zone-content">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    <p class="drop-zone-text" style="font-size: var(--text-xs);">Drag file here or <span class="highlight">Browse</span></p>
+                  </div>
+                </div>
+                <div class="file-preview-container" id="homepage-file-preview-container" style="display: none;">
+                  <div class="file-info">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="file-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <div class="file-details">
+                      <span class="file-name" id="homepage-preview-file-name">filename.jpg</span>
+                      <span class="file-size" id="homepage-preview-file-size">1.2 MB</span>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-remove-file" id="homepage-btn-remove-file" aria-label="Remove file" disabled>&times;</button>
+                </div>
+                <div class="error-msg" id="homepage-id-error-msg"></div>
+              </div>
+
+              <!-- Consent and Signature -->
+              <div class="disclaimer-consent">
+                <input type="checkbox" id="homepage-consent" name="consent" required disabled>
+                <label for="homepage-consent" class="consent-label" style="font-size: 11px;">
+                  I agree to the terms of the "Fit Pit Membership Agreement". *
+                </label>
+              </div>
+
+              <div class="form-group signature-section" style="border-top: none; padding-top: 0;">
+                <label>Signature *</label>
+                <div class="signature-tabs" role="tablist">
+                  <button type="button" class="sig-tab active" id="homepage-tab-draw" role="tab" aria-selected="true" aria-controls="homepage-panel-draw" disabled>Draw</button>
+                  <button type="button" class="sig-tab" id="homepage-tab-type" role="tab" aria-selected="false" aria-controls="homepage-panel-type" disabled>Type</button>
+                </div>
+
+                <!-- Panel Draw -->
+                <div class="sig-panel active" id="homepage-panel-draw" role="tabpanel" aria-labelledby="homepage-tab-draw">
+                  <div class="canvas-container">
+                    <canvas id="homepage-signature-canvas" width="400" height="110" aria-label="Signature drawing area"></canvas>
+                    <button type="button" class="btn-clear-sig" id="homepage-btn-clear-sig" disabled>Clear</button>
+                  </div>
+                </div>
+
+                <!-- Panel Type -->
+                <div class="sig-panel" id="homepage-panel-type" role="tabpanel" aria-labelledby="homepage-tab-type" style="display: none;">
+                  <input type="text" id="homepage-signature-typed" name="signature_typed" placeholder="Type your full name" class="typed-sig-input" style="font-size: 1.8rem !important; min-height: 40px;" disabled>
+                </div>
+                <div class="error-msg" id="homepage-signature-error-msg"></div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="homepage-signing-date">Date of Signing</label>
+                  <input type="text" id="homepage-signing-date" name="date_of_signing" style="min-height: 36px; padding: 0 10px; font-size: var(--text-xs);" readonly disabled>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit Section -->
+            <div class="homepage-submit-bar" style="grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: var(--space-md); margin-top: var(--space-md); border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: var(--space-md);">
+              
+              <!-- Success/Error/Loading Screens -->
+              <div class="homepage-status-container" style="width: 100%;">
+                <!-- Loading State -->
+                <div class="status-loading" id="homepage-status-loading" style="display: none; padding: 10px 0;">
+                  <div class="spinner" style="width: 30px; height: 30px; border-width: 3px;"></div>
+                  <p style="font-size: var(--text-xs);">Submitting agreement...</p>
+                </div>
+                
+                <!-- Success State -->
+                <div class="status-success" id="homepage-status-success" style="display: none; padding: 10px 0; gap: var(--space-xs);">
+                  <svg class="success-icon" style="width: 40px; height: 40px; padding: 8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <h5 style="font-size: var(--text-md); color: var(--color-accent); font-weight: 700; margin: 0;">Agreement Submitted!</h5>
+                  <p style="font-size: var(--text-xs); margin: 0;">Welcome to Fit Pit ZNZ! A confirmation has been sent to your email.</p>
+                </div>
+
+                <!-- Error State -->
+                <div class="status-error" id="homepage-status-error" style="display: none; padding: 10px 0; gap: var(--space-xs);">
+                  <svg class="error-icon" style="width: 40px; height: 40px; padding: 8px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <h5 style="font-size: var(--text-md); color: #ff3333; font-weight: 700; margin: 0;">Submission Failed</h5>
+                  <p id="homepage-error-text" style="font-size: var(--text-xs); margin: 0;">Please check your details and try again.</p>
+                  <button type="button" class="btn btn-outline btn-xs" id="homepage-btn-retry" style="margin-top: 5px; min-width: 80px; padding: 4px var(--space-sm); font-size: var(--text-xs);">Retry</button>
+                </div>
+              </div>
+
+              <button type="submit" class="btn btn-primary" id="btn-homepage-submit" style="min-width: 200px;" disabled>Submit Agreement</button>
+            </div>
+          </form>
+        </div>
     </div>
   </section>
 
@@ -730,6 +947,73 @@
     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
   </a>
 
+  <!-- ==================== Daily Pass Modal ==================== -->
+  <dialog class="clinic-modal daily-pass-modal" id="daily-pass-modal">
+    <div class="clinic-modal-content">
+      <button class="clinic-modal-close" id="close-daily-pass-modal" aria-label="Close modal">&times;</button>
+      
+      <div class="clinic-modal-header">
+        <h3>Daily Pass Details</h3>
+        <p class="clinic-modal-subtitle">Flexible access for visitors and residents</p>
+      </div>
+
+      <div class="clinic-modal-body">
+        <div class="pricing-modal-highlight">
+          <div class="pricing-modal-price">
+            <span class="price-usd">$10 <span class="currency-label">USD</span></span>
+            <span class="price-separator">or</span>
+            <span class="price-tsh">25,000 <span class="currency-label">TSH</span></span>
+          </div>
+          <p class="price-period">per visit</p>
+        </div>
+
+        <div class="pricing-modal-info-card">
+          <h4>Payment Methods</h4>
+          <p>For your convenience, payment can be made directly at the gym reception desk using:</p>
+          <div class="payment-methods-grid">
+            <div class="payment-method-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              <span>Card Payment</span>
+            </div>
+            <div class="payment-method-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+              <span>Cash (USD or TSH)</span>
+            </div>
+          </div>
+          <p class="modal-note-small">Note: Payments are made on site.</p>
+        </div>
+
+        <div class="pricing-modal-info-card" style="margin-top: var(--space-md);">
+          <h4>Location & Hours</h4>
+          <p class="location-text">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 4px; vertical-align: middle; color: var(--color-accent);"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <strong>Zanzibar Sporting Club</strong>, Cairo/Kiwengwa
+          </p>
+          <p class="hours-text" style="margin-top: var(--space-xs);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 16px; height: 16px; margin-right: 4px; vertical-align: middle; color: var(--color-accent);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Every day: 5:30 AM – 10:00 PM
+          </p>
+          <div class="modal-links-grid">
+            <a href="https://maps.app.goo.gl/2nXYyyuSYJjJFRzq9" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 14px; height: 14px; margin-right: 6px;"><path d="M1 6v14l6-4 6 4 6-4 7 4V6l-7 4-6-4-6 4z"/></svg>
+              Google Maps
+            </a>
+            <button id="modal-view-contact-info" class="btn btn-outline btn-sm">
+              View Location & Hours Details
+            </button>
+          </div>
+        </div>
+
+        <div class="pricing-modal-cta" style="margin-top: var(--space-lg); text-align: center;">
+          <a href="https://wa.me/255779630403?text=Hi!%20I'm%20interested%20in%20a%20Daily%20Pass." target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="width: 100%; justify-content: center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px; margin-right: 8px;"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            Contact us via WhatsApp
+          </a>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <!-- ==================== Medical Clinic Modal ==================== -->
   <dialog class="clinic-modal" id="clinic-modal">
     <div class="clinic-modal-content">
@@ -927,50 +1211,122 @@
 
         <!-- STEP 4: Waiver, Signature & Date -->
         <div class="wizard-step" data-step="4">
-          <div class="agreement-box">
+          <div class="policy-header-container">
             <h4>Fit Pit Membership Agreement Terms</h4>
-            <p>By signing below, you agree to comply with all rules and regulations of Fit Pit ZNZ, including hours of operation, code of conduct, and payment policies. Failure to follow rules may result in membership cancellation.</p>
-            <a href="https://www.fitpitznz.com/_files/ugd/1fe5eb_a1f83f508fa346bab800b3972b317d0e.pdf" target="_blank" rel="noopener noreferrer" class="pdf-link">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-              Read Full Membership Agreement PDF
+            <a href="https://www.fitpitznz.com/_files/ugd/1fe5eb_a1f83f508fa346bab800b3972b317d0e.pdf" target="_blank" rel="noopener noreferrer" class="pdf-link btn-download-pdf">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download PDF Agreement
             </a>
           </div>
 
-          <div class="disclaimer-consent">
-            <input type="checkbox" id="wizard-consent" name="consent" required>
-            <label for="wizard-consent" class="consent-label">
-              By signing below, I acknowledge that I have read, understood, and agree to abide by the terms and conditions outlined in the "Fit Pit Membership Agreement" above. *
-            </label>
+          <!-- Policy Scroll Container -->
+          <div class="policy-box" id="wizard-policy-box" tabindex="0">
+            <h5>Membership Agreement</h5>
+            <p>Welcome to Fit Pit Zanzibar! We are excited to have you as a member of our fitness community. Before you begin your journey with us, please review and acknowledge the following terms and conditions of your membership. By signing this form, you agree to adhere to these guidelines to ensure a safe and enjoyable experience for all members.</p>
+            
+            <h6>1. Membership Terms</h6>
+            <ul>
+              <li><strong>Membership Duration:</strong> All memberships are based on calendar dates. For example, if you purchase a one-month membership starting on September 15th, it will be valid until October 15th. This period is fixed and does not extend beyond these dates, regardless of the number of days you attend the gym.</li>
+              <li><strong>Non-Cancellation Policy:</strong> Once a membership is purchased, it cannot be cancelled or terminated early. The membership remains active for the entire duration as specified at the time of purchase.</li>
+              <li><strong>No Carry-Over Policy:</strong> If you do not use your membership within the specified dates, the remaining days or sessions cannot be carried over to the next month or future dates. It is important to utilize your membership within its active period.</li>
+              <li><strong>Non-Transferable:</strong> Memberships are non-transferable and solely for the registered individual. Unauthorized use of membership will result in immediate cancellation, with membership fees withheld as a penalty.</li>
+              <li><strong>No Refunds:</strong> We do not offer refunds for any reason. Once a membership or service is purchased, the payment is final and non-refundable under all circumstances.</li>
+              <li><strong>Exceptions for Gym Closures:</strong> The only exception to the above policies is if we are required to close the gym due to circumstances beyond our control, such as natural disasters, emergencies, and any electrical maintenance where gym usage would be deemed unsafe. In such cases, we will provide a day pass for each day the gym is closed, which can be used once the gym reopens. Please note that even in these circumstances, no refunds will be issued.</li>
+            </ul>
+
+            <h6>2. Access Keys</h6>
+            <ul>
+              <li>Entry to Fit Pit Zanzibar is controlled by electronic locks and access cards. Members must carry their access card when using the gym services.</li>
+              <li>Access to the gym will be denied if a member fails to swipe their access key upon arrival.</li>
+              <li>In case of loss or theft of the access card, inform gym staff immediately for deactivation and replacement. A replacement fee of $15 USD per access card will apply.</li>
+            </ul>
+
+            <h6>3. Membership Renewals</h6>
+            <ul>
+              <li>To ensure uninterrupted key access to Fit Pit Zanzibar at the point of renewal, we recommend renewing your membership 14 days prior to the date of expiration.</li>
+              <li>Membership prices are subject to change upon the time of renewing your membership.</li>
+              <li>Day pass prices are subject to change at any time.</li>
+              <li>A new Membership Agreement form must be signed by the member at the time of renewing a membership.</li>
+            </ul>
+
+            <h6>4. CCTV Cameras</h6>
+            <ul>
+              <li>All areas of Fit Pit (excluding locker rooms and washrooms) are under CCTV surveillance for the safety of our members. The management reserves the right to review footage in case of any misconduct on the premises.</li>
+            </ul>
+
+            <h6>5. Gym Etiquette - Golden Rules</h6>
+            <ul>
+              <li>Women’s workout hours are from 10 am to 12 pm on Tuesdays and Thursdays. No men will be permitted to use the gym during these hours.</li>
+              <li><strong>Food and Beverages:</strong> Only bottled water or sports drinks are allowed in the gym. Dispose of all litter, including used paper towels and water bottles, appropriately.</li>
+              <li><strong>Personal Belongings:</strong> Store personal items such as shoes, purses, and jackets in the provided lockers. These should not be placed in workout areas or near equipment. Sign in with the gym staff to receive a locker and key, which must be returned after use. Fit Pit management is not liable for personal items stored in lockers. A $10 USD fee applies for lost locker keys, as it necessitates replacing the lock/key set.</li>
+              <li><strong>Appropriate Attire:</strong> Only gym wear with athletic trainers is permitted. Flip-flops, sandals, and beachwear are not allowed. Management reserves the right to deny access to members not complying with this policy.</li>
+              <li><strong>Equipment Usage:</strong> Do not "save" machines or equipment for yourself or others by placing items on them. Always re-rack weights and return equipment to its proper place. Do not rest equipment against walls, windows, or mirrors. Members are liable for costs related to damages caused by inappropriate use of equipment.</li>
+              <li><strong>Photography:</strong> Progress selfies are encouraged, although please refrain from filming or including other members in any photo or video content without their consent.</li>
+              <li><strong>Commercial Photography:</strong> Commercial photography is not allowed within the gym premises without prior permission from our marketing team.</li>
+              <li><strong>Age Requirement:</strong> The minimum age for access to Fit Pit Zanzibar is 17 years.</li>
+              <li><strong>Music Policy:</strong> Workout music will be playing from speakers in the gym. The volume and selection of music are predetermined. If you prefer different music, please use your personal earphones. Requests to change the gym's music or volume will not be entertained.</li>
+              <li><strong>Towels and Accessories:</strong> Towels and accessories are to be used within the gym premises only. Please do not carry them home.</li>
+              <li><strong>Respect for Other Members:</strong> Fit Pit is committed to maintaining a positive and supportive environment for everyone. All members are expected to treat others with respect and courtesy at all times. This includes respecting personal space, using appropriate language, keeping noise levels down, and following gym etiquette. Harassment, discrimination, or any form of disrespectful behaviour will not be tolerated and may result in the termination of your membership without a refund.</li>
+              <li><strong>Membership Termination:</strong> Fit Pit Zanzibar management reserves the right to terminate a membership with immediate effect if members are found not adhering to the rules and terms stated in this agreement.</li>
+            </ul>
+
+            <h6>6. Privacy</h6>
+            <ul>
+              <li><strong>Government ID Requirement:</strong> When signing up for a membership at Fit Pit, members are required to provide a copy of their government-issued ID. This is necessary for verification purposes and to ensure the security and integrity of our membership records.</li>
+              <li><strong>Privacy Practices:</strong> Fit Pit is committed to protecting your privacy. We will not share your personal information, including your ID, contact details, and any other data you provide, with any company, third party, or external entity without your explicit consent, unless required by law. Your information is securely stored and used solely for internal purposes related to your membership and communication with Fit Pit.</li>
+            </ul>
+
+            <h6>7. Liability</h6>
+            <ul>
+              <li>By using the facilities at Fit Pit, members acknowledge and accept the inherent risks associated with physical exercise, including potential injuries or accidents. Fit Pit Zanzibar is not liable for any injuries, accidents, or health issues that may occur while using the gym facilities or participating in any activities including but not limited to fitness classes and personal training sessions.</li>
+              <li><strong>Power Outages:</strong> In Zanzibar, power outages are common and beyond our control, despite the measures we have in place, such as generators, UPS systems, and stabilizers. Fit Pit cannot be held responsible for any inconvenience, injury or disruption caused by power fluctuations or outages.</li>
+            </ul>
           </div>
 
-          <div class="form-group signature-section">
-            <label>Member Signature *</label>
-            
-            <div class="signature-tabs" role="tablist">
-              <button type="button" class="sig-tab active" id="tab-draw" role="tab" aria-selected="true" aria-controls="panel-draw">Draw Signature</button>
-              <button type="button" class="sig-tab" id="tab-type" role="tab" aria-selected="false" aria-controls="panel-type">Type Signature</button>
+          <!-- Locked/Scroll Alert Notice -->
+          <div class="scroll-alert" id="wizard-scroll-alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+            Please scroll to the bottom of the Membership Agreement to unlock signing.
+          </div>
+
+          <!-- Signature and Consent Container (Locked initially) -->
+          <div class="locked-sig-container locked" id="wizard-locked-sig-container">
+            <div class="disclaimer-consent">
+              <input type="checkbox" id="wizard-consent" name="consent" required disabled>
+              <label for="wizard-consent" class="consent-label">
+                By signing below, I acknowledge that I have read, understood, and agree to abide by the terms and conditions outlined in the "Fit Pit Membership Agreement" above. *
+              </label>
             </div>
 
-            <!-- Panel Draw -->
-            <div class="sig-panel active" id="panel-draw" role="tabpanel" aria-labelledby="tab-draw">
-              <div class="canvas-container">
-                <canvas id="signature-canvas" width="400" height="150" aria-label="Signature drawing area"></canvas>
-                <button type="button" class="btn-clear-sig" id="btn-clear-sig">Clear</button>
+            <div class="form-group signature-section">
+              <label>Member Signature *</label>
+              
+              <div class="signature-tabs" role="tablist">
+                <button type="button" class="sig-tab active" id="wizard-tab-draw" role="tab" aria-selected="true" aria-controls="wizard-panel-draw" disabled>Draw Signature</button>
+                <button type="button" class="sig-tab" id="wizard-tab-type" role="tab" aria-selected="false" aria-controls="wizard-panel-type" disabled>Type Signature</button>
               </div>
+
+              <!-- Panel Draw -->
+              <div class="sig-panel active" id="wizard-panel-draw" role="tabpanel" aria-labelledby="wizard-tab-draw">
+                <div class="canvas-container">
+                  <canvas id="signature-canvas" width="400" height="150" aria-label="Signature drawing area"></canvas>
+                  <button type="button" class="btn-clear-sig" id="btn-clear-sig" disabled>Clear</button>
+                </div>
+              </div>
+
+              <!-- Panel Type -->
+              <div class="sig-panel" id="wizard-panel-type" role="tabpanel" aria-labelledby="wizard-tab-type" style="display: none;">
+                <input type="text" id="signature-typed" name="signature_typed" placeholder="Type your full name" class="typed-sig-input" disabled>
+              </div>
+              
+              <div class="error-msg" id="signature-error-msg"></div>
             </div>
 
-            <!-- Panel Type -->
-            <div class="sig-panel" id="panel-type" role="tabpanel" aria-labelledby="tab-type" style="display: none;">
-              <input type="text" id="signature-typed" name="signature_typed" placeholder="Type your full name" class="typed-sig-input">
-            </div>
-            
-            <div class="error-msg" id="signature-error-msg"></div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label for="wizard-signing-date">Date of Signing</label>
-              <input type="text" id="wizard-signing-date" name="date_of_signing" readonly disabled>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="wizard-signing-date">Date of Signing</label>
+                <input type="text" id="wizard-signing-date" name="date_of_signing" readonly disabled>
+              </div>
             </div>
           </div>
         </div>

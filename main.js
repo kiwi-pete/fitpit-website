@@ -205,20 +205,162 @@ if (clinicModal && openClinicBtn && closeClinicBtn) {
 
   // Close modal when clicking on the backdrop
   clinicModal.addEventListener('click', (e) => {
-    const dialogDimensions = clinicModal.getBoundingClientRect();
+    if (e.target === clinicModal) {
+      closeModal();
+    }
+  });
+}
+
+// ---------- Daily Pass Modal Triggers ----------
+const dailyPassModal = document.getElementById('daily-pass-modal');
+const openDailyPassBtn = document.getElementById('open-daily-pass-modal');
+const closeDailyPassBtn = document.getElementById('close-daily-pass-modal');
+const modalViewContactBtn = document.getElementById('modal-view-contact-info');
+
+if (dailyPassModal && openDailyPassBtn && closeDailyPassBtn) {
+  openDailyPassBtn.addEventListener('click', () => {
+    dailyPassModal.showModal();
+    document.body.style.overflow = 'hidden'; // prevent background scrolling
+  });
+
+  const closeDailyPassModal = () => {
+    dailyPassModal.close();
+    document.body.style.overflow = ''; // restore scrolling
+  };
+
+  closeDailyPassBtn.addEventListener('click', closeDailyPassModal);
+
+  // Close modal when clicking on the backdrop
+  dailyPassModal.addEventListener('click', (e) => {
+    const dialogDimensions = dailyPassModal.getBoundingClientRect();
     if (
       e.clientX < dialogDimensions.left ||
       e.clientX > dialogDimensions.right ||
       e.clientY < dialogDimensions.top ||
       e.clientY > dialogDimensions.bottom
     ) {
-      closeModal();
+      closeDailyPassModal();
     }
   });
+
+  // Handle "View Location & Hours Details" button click
+  if (modalViewContactBtn) {
+    modalViewContactBtn.addEventListener('click', () => {
+      closeDailyPassModal();
+      
+      const target = document.getElementById('contact');
+      if (target) {
+        // Calculate position based on header offset
+        const headerHeight = header ? header.offsetHeight : 80;
+        const targetPosition = target.getBoundingClientRect().top + window.scrollY - headerHeight - 20;
+        
+        window.scrollTo({
+          top: targetPosition,
+          behavior: 'smooth'
+        });
+      }
+    });
+  }
 }
 
-/* ==================== Membership Agreement Wizard Controller ==================== */
+/* ==================== Membership Agreement Wizard Controller & Homepage Form ==================== */
 
+// --- Generic Signature Pad Class/Initializer ---
+function initSignaturePad(canvasEl, clearBtnEl, errorMsgEl) {
+  if (!canvasEl) return null;
+  const ctx = canvasEl.getContext('2d');
+  let isCanvasBlank = true;
+  let isDrawing = false;
+
+  const resizeCanvas = () => {
+    const rect = canvasEl.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    canvasEl.width = rect.width * dpr;
+    canvasEl.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    
+    ctx.strokeStyle = '#aaff00'; // Lime color signature
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    // Clear canvas content and reset blank state on resize
+    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    isCanvasBlank = true;
+  };
+
+  const getPointerPos = (e) => {
+    const rect = canvasEl.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  };
+
+  const startDrawing = (e) => {
+    if (canvasEl.disabled || canvasEl.closest('.locked')) return;
+    isDrawing = true;
+    const pos = getPointerPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    isCanvasBlank = false;
+    if (errorMsgEl) errorMsgEl.textContent = '';
+    const group = canvasEl.closest('.form-group') || canvasEl.parentElement;
+    group.classList.remove('invalid');
+    e.preventDefault();
+  };
+
+  const draw = (e) => {
+    if (!isDrawing) return;
+    const pos = getPointerPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    e.preventDefault();
+  };
+
+  const stopDrawing = () => {
+    isDrawing = false;
+  };
+
+  // Event Listeners
+  canvasEl.addEventListener('mousedown', startDrawing);
+  canvasEl.addEventListener('mousemove', draw);
+  canvasEl.addEventListener('mouseup', stopDrawing);
+  canvasEl.addEventListener('mouseleave', stopDrawing);
+  
+  canvasEl.addEventListener('touchstart', startDrawing, { passive: false });
+  canvasEl.addEventListener('touchmove', draw, { passive: false });
+  canvasEl.addEventListener('touchend', stopDrawing);
+  canvasEl.addEventListener('touchcancel', stopDrawing);
+
+  if (clearBtnEl) {
+    clearBtnEl.addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      isCanvasBlank = true;
+    });
+  }
+
+  // Initial resize
+  resizeCanvas();
+  // Listen for resize
+  window.addEventListener('resize', resizeCanvas);
+
+  return {
+    canvas: canvasEl,
+    ctx,
+    resize: resizeCanvas,
+    clear: () => {
+      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      isCanvasBlank = true;
+    },
+    isBlank: () => isCanvasBlank,
+    setBlank: (val) => { isCanvasBlank = val; },
+    getDataURL: () => canvasEl.toDataURL('image/png')
+  };
+}
+
+// --- Wizard Modal Elements ---
 const agreementModal = document.getElementById('agreement-modal');
 const closeAgreementBtn = document.getElementById('close-agreement-modal');
 const joinBtns = document.querySelectorAll('.join-btn');
@@ -235,7 +377,7 @@ const termSelect = document.getElementById('wizard-membership-term');
 const startDateInput = document.getElementById('wizard-start-date');
 const signingDateInput = document.getElementById('wizard-signing-date');
 
-// File Upload Variables
+// Wizard File Upload
 const fileInput = document.getElementById('wizard-id-file');
 const dropZone = document.getElementById('id-drop-zone');
 const previewContainer = document.getElementById('file-preview-container');
@@ -247,111 +389,94 @@ let uploadedFileBase64 = null;
 let uploadedFileName = '';
 let uploadedFileType = '';
 
-// Signature Variables
-const canvas = document.getElementById('signature-canvas');
-const ctx = canvas ? canvas.getContext('2d') : null;
-const btnClearSig = document.getElementById('btn-clear-sig');
-const tabDraw = document.getElementById('tab-draw');
-const tabType = document.getElementById('tab-type');
-const panelDraw = document.getElementById('panel-draw');
-const panelType = document.getElementById('panel-type');
-const typedSigInput = document.getElementById('signature-typed');
-const sigErrorMsg = document.getElementById('signature-error-msg');
-let isCanvasBlank = true;
-let isDrawing = false;
-let sigMode = 'draw'; // 'draw' or 'type'
-
+// Wizard Signature
+const wizardCanvas = document.getElementById('signature-canvas');
+const wizardClearBtn = document.getElementById('btn-clear-sig');
+const wizardSigErrorMsg = document.getElementById('signature-error-msg');
+const wizardTabDraw = document.getElementById('wizard-tab-draw');
+const wizardTabType = document.getElementById('wizard-tab-type');
+const wizardPanelDraw = document.getElementById('wizard-panel-draw');
+const wizardPanelType = document.getElementById('wizard-panel-type');
+const wizardTypedSigInput = document.getElementById('signature-typed');
+let wizardSigPad = null;
+let wizardSigMode = 'draw';
 let currentStep = 1;
 const totalSteps = 4;
 
+// --- Homepage Agreement Form Elements ---
+const homepageForm = document.getElementById('homepage-agreement-form');
+const homepagePolicyBox = document.getElementById('homepage-policy-box');
+const homepageScrollAlert = document.getElementById('homepage-scroll-alert');
+const homepageStartDateInput = document.getElementById('homepage-start-date');
+const homepageSigningDateInput = document.getElementById('homepage-signing-date');
+
+// Homepage File Upload
+const homepageFileInput = document.getElementById('homepage-id-file');
+const homepageDropZone = document.getElementById('homepage-id-drop-zone');
+const homepagePreviewContainer = document.getElementById('homepage-file-preview-container');
+const homepagePreviewFileName = document.getElementById('homepage-preview-file-name');
+const homepagePreviewFileSize = document.getElementById('homepage-preview-file-size');
+const homepageBtnRemoveFile = document.getElementById('homepage-btn-remove-file');
+const homepageIdErrorMsg = document.getElementById('homepage-id-error-msg');
+let homepageUploadedFileBase64 = null;
+let homepageUploadedFileName = '';
+let homepageUploadedFileType = '';
+
+// Homepage Signature
+const homepageCanvas = document.getElementById('homepage-signature-canvas');
+const homepageClearBtn = document.getElementById('homepage-btn-clear-sig');
+const homepageSigErrorMsg = document.getElementById('homepage-signature-error-msg');
+const homepageTabDraw = document.getElementById('homepage-tab-draw');
+const homepageTabType = document.getElementById('homepage-tab-type');
+const homepagePanelDraw = document.getElementById('homepage-panel-draw');
+const homepagePanelType = document.getElementById('homepage-panel-type');
+const homepageTypedSigInput = document.getElementById('homepage-signature-typed');
+let homepageSigPad = null;
+let homepageSigMode = 'draw';
+
+// --- Shared Helpers ---
+const setDatesForElement = (startInput, signingInput) => {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+  
+  if (startInput) {
+    startInput.value = todayStr;
+    startInput.min = todayStr;
+  }
+  
+  if (signingInput) {
+    const options = { day: '2-digit', month: 'long', year: 'numeric' };
+    signingInput.value = today.toLocaleDateString('en-US', options);
+  }
+};
+
+// --- Initialize Canvases if elements exist ---
+document.addEventListener('DOMContentLoaded', () => {
+  if (wizardCanvas) {
+    wizardSigPad = initSignaturePad(wizardCanvas, wizardClearBtn, wizardSigErrorMsg);
+  }
+  if (homepageCanvas) {
+    homepageSigPad = initSignaturePad(homepageCanvas, homepageClearBtn, homepageSigErrorMsg);
+  }
+  setDatesForElement(homepageStartDateInput, homepageSigningDateInput);
+});
+
+// Fallback in case DOMContentLoaded has already fired
+if (document.readyState === 'interactive' || document.readyState === 'complete') {
+  if (wizardCanvas && !wizardSigPad) {
+    wizardSigPad = initSignaturePad(wizardCanvas, wizardClearBtn, wizardSigErrorMsg);
+  }
+  if (homepageCanvas && !homepageSigPad) {
+    homepageSigPad = initSignaturePad(homepageCanvas, homepageClearBtn, homepageSigErrorMsg);
+  }
+  setDatesForElement(homepageStartDateInput, homepageSigningDateInput);
+}
+
+// --- Wizard Modal Handlers ---
 if (agreementModal) {
-  // Set date field defaults
-  const setDates = () => {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const todayStr = `${yyyy}-${mm}-${dd}`;
-    
-    if (startDateInput) {
-      startDateInput.value = todayStr;
-      startDateInput.min = todayStr;
-    }
-    
-    if (signingDateInput) {
-      const options = { day: '2-digit', month: 'long', year: 'numeric' };
-      signingDateInput.value = today.toLocaleDateString('en-US', options);
-    }
-  };
-
-  // Resize canvas for high resolution
-  const resizeCanvas = () => {
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    // Use pixel ratio for sharp drawing
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = rect.width * dpr;
-    canvas.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-    
-    // Set drawing styles
-    ctx.strokeStyle = '#aaff00'; // Lime color signature
-    ctx.lineWidth = 2.5;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    isCanvasBlank = true; // reset blank flag after resize since it clears the canvas
-  };
-
-  // Open Modal
-  joinBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      
-      // Select appropriate membership option
-      const selectedPass = btn.getAttribute('data-pass');
-      if (selectedPass && termSelect) {
-        // Find option matching selectedPass
-        for (let i = 0; i < termSelect.options.length; i++) {
-          if (termSelect.options[i].value.toLowerCase().includes(selectedPass.split(' ')[0].toLowerCase())) {
-            termSelect.selectedIndex = i;
-            break;
-          }
-        }
-      }
-      
-      // Initialize dates and states
-      resetWizard();
-      setDates();
-      
-      agreementModal.showModal();
-      document.body.style.overflow = 'hidden'; // prevent scrolling
-      
-      // Small timeout to let dialog render before resizing canvas
-      setTimeout(resizeCanvas, 100);
-    });
-  });
-
-  // Close Modal
-  const closeAgreementModal = () => {
-    agreementModal.close();
-    document.body.style.overflow = ''; // restore scrolling
-  };
-
-  closeAgreementBtn.addEventListener('click', closeAgreementModal);
-
-  // Close modal when clicking on the backdrop
-  agreementModal.addEventListener('click', (e) => {
-    const dialogDimensions = agreementModal.getBoundingClientRect();
-    if (
-      e.clientX < dialogDimensions.left ||
-      e.clientX > dialogDimensions.right ||
-      e.clientY < dialogDimensions.top ||
-      e.clientY > dialogDimensions.bottom
-    ) {
-      closeAgreementModal();
-    }
-  });
-
   // Reset Wizard State
   const resetWizard = () => {
     currentStep = 1;
@@ -359,8 +484,9 @@ if (agreementModal) {
     
     // Reset form fields
     wizardForm.reset();
-    document.querySelectorAll('.form-group.invalid').forEach(el => el.classList.remove('invalid'));
-    document.querySelectorAll('.drag-drop-zone.invalid').forEach(el => el.classList.remove('invalid'));
+    document.querySelectorAll('#agreement-form .form-group.invalid').forEach(el => el.classList.remove('invalid'));
+    document.querySelectorAll('#agreement-form .drag-drop-zone.invalid').forEach(el => el.classList.remove('invalid'));
+    document.querySelectorAll('#agreement-form .error-msg').forEach(el => el.textContent = '');
     
     // Reset ID Upload
     uploadedFileBase64 = null;
@@ -374,11 +500,10 @@ if (agreementModal) {
     if (idErrorMsg) idErrorMsg.textContent = '';
     
     // Reset Signature
-    isCanvasBlank = true;
-    if (ctx && canvas) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (wizardSigPad) {
+      wizardSigPad.clear();
     }
-    if (sigErrorMsg) sigErrorMsg.textContent = '';
+    if (wizardSigErrorMsg) wizardSigErrorMsg.textContent = '';
     selectSigTab('draw');
     
     // Reset Status Screens
@@ -386,30 +511,88 @@ if (agreementModal) {
     document.getElementById('wizard-status-success').style.display = 'none';
     document.getElementById('wizard-status-error').style.display = 'none';
     wizardFooter.style.display = 'flex';
+
+    // Lock signature area again on reset
+    const wizardLockedContainer = document.getElementById('wizard-locked-sig-container');
+    const wizardScrollAlert = document.getElementById('wizard-scroll-alert');
+    const wizardPolicyBox = document.getElementById('wizard-policy-box');
+
+    if (wizardLockedContainer) {
+      wizardLockedContainer.classList.add('locked');
+      const disabledElements = wizardLockedContainer.querySelectorAll('input, button');
+      disabledElements.forEach(el => el.setAttribute('disabled', ''));
+    }
+    if (wizardScrollAlert) {
+      wizardScrollAlert.style.display = 'flex';
+    }
+    if (wizardPolicyBox) {
+      wizardPolicyBox.scrollTop = 0;
+    }
   };
 
-  // Navigations
+  // Open Modal
+  joinBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      resetWizard();
+      setDatesForElement(startDateInput, signingDateInput);
+      
+      const selectedPass = btn.getAttribute('data-pass');
+      if (selectedPass && termSelect) {
+        const parts = selectedPass.toLowerCase().split(' ');
+        const num = parts[0];
+        const unit = parts[1];
+        
+        for (let i = 0; i < termSelect.options.length; i++) {
+          const optValue = termSelect.options[i].value.toLowerCase();
+          if (optValue === selectedPass.toLowerCase() || (num && unit && optValue.includes(num) && optValue.includes(unit))) {
+            termSelect.selectedIndex = i;
+            break;
+          }
+        }
+      }
+      
+      agreementModal.showModal();
+      document.body.style.overflow = 'hidden';
+      
+      setTimeout(() => {
+        if (wizardSigPad) wizardSigPad.resize();
+      }, 100);
+    });
+  });
+
+  const closeAgreementModal = () => {
+    agreementModal.close();
+    document.body.style.overflow = '';
+  };
+
+  closeAgreementBtn.addEventListener('click', closeAgreementModal);
+
+  agreementModal.addEventListener('click', (e) => {
+    if (e.target === agreementModal) {
+      closeAgreementModal();
+    }
+  });
+
+  // Wizard Navigation
   const goToStep = (step) => {
     currentStep = step;
     
-    // Toggle active classes on content panels
     wizardSteps.forEach(s => {
       const stepNum = parseInt(s.getAttribute('data-step'));
       s.classList.toggle('active', stepNum === step);
     });
     
-    // Update step markers
     stepNodes.forEach(node => {
       const stepNum = parseInt(node.getAttribute('data-step'));
       node.classList.toggle('active', stepNum === step);
       node.classList.toggle('completed', stepNum < step);
     });
     
-    // Update progress bar width
     const percent = ((step - 1) / (totalSteps - 1)) * 100;
     if (progressBar) progressBar.style.width = `${percent}%`;
     
-    // Update buttons
     if (btnBack) {
       btnBack.style.visibility = step === 1 || step === 5 ? 'hidden' : 'visible';
     }
@@ -436,13 +619,11 @@ if (agreementModal) {
     }
   });
 
-  // Close on Success screen close button
   const closeSuccessBtn = document.getElementById('btn-wizard-close-success');
   if (closeSuccessBtn) {
     closeSuccessBtn.addEventListener('click', closeAgreementModal);
   }
 
-  // Retry on Error screen button
   const retryBtn = document.getElementById('btn-wizard-retry');
   if (retryBtn) {
     retryBtn.addEventListener('click', () => {
@@ -457,8 +638,8 @@ if (agreementModal) {
   const validateStep = (step) => {
     let isValid = true;
     
-    // Clear previous errors
     document.querySelectorAll(`.wizard-step[data-step="${step}"] .form-group.invalid`).forEach(el => el.classList.remove('invalid'));
+    document.querySelectorAll(`.wizard-step[data-step="${step}"] .error-msg`).forEach(el => el.textContent = '');
     
     if (step === 1) {
       const startDateVal = startDateInput.value;
@@ -523,25 +704,25 @@ if (agreementModal) {
       if (!consentCheckbox.checked) {
         const group = consentCheckbox.closest('.disclaimer-consent') || consentCheckbox.parentElement;
         group.classList.add('invalid');
-        if (sigErrorMsg) sigErrorMsg.textContent = 'You must agree to the terms to proceed.';
+        if (wizardSigErrorMsg) wizardSigErrorMsg.textContent = 'You must agree to the terms to proceed.';
         isValid = false;
       } else {
         const group = consentCheckbox.closest('.disclaimer-consent') || consentCheckbox.parentElement;
         group.classList.remove('invalid');
-        if (sigErrorMsg) sigErrorMsg.textContent = '';
+        if (wizardSigErrorMsg) wizardSigErrorMsg.textContent = '';
       }
       
       if (isValid) {
-        if (sigMode === 'draw') {
-          if (isCanvasBlank) {
-            markInvalid(canvas, 'Please draw your signature.');
-            if (sigErrorMsg) sigErrorMsg.textContent = 'Please draw your signature to sign.';
+        if (wizardSigMode === 'draw') {
+          if (!wizardSigPad || wizardSigPad.isBlank()) {
+            markInvalid(wizardCanvas, 'Please draw your signature.');
+            if (wizardSigErrorMsg) wizardSigErrorMsg.textContent = 'Please draw your signature to sign.';
             isValid = false;
           }
         } else {
-          if (!typedSigInput.value.trim()) {
-            markInvalid(typedSigInput, 'Please type your signature.');
-            if (sigErrorMsg) sigErrorMsg.textContent = 'Please type your name to sign.';
+          if (!wizardTypedSigInput.value.trim()) {
+            markInvalid(wizardTypedSigInput, 'Please type your signature.');
+            if (wizardSigErrorMsg) wizardSigErrorMsg.textContent = 'Please type your name to sign.';
             isValid = false;
           }
         }
@@ -554,15 +735,14 @@ if (agreementModal) {
   const markInvalid = (element, message) => {
     const group = element.closest('.form-group') || element.parentElement;
     group.classList.add('invalid');
-    // Look for error message span
     let errorSpan = group.querySelector('.error-msg');
-    if (!errorSpan && element === canvas) errorSpan = sigErrorMsg;
+    if (!errorSpan && element === wizardCanvas) errorSpan = wizardSigErrorMsg;
     if (errorSpan) {
       errorSpan.textContent = message;
     }
   };
 
-  // Drag & Drop Handlers
+  // Drag & Drop Handlers for Wizard
   if (dropZone && fileInput) {
     dropZone.addEventListener('click', () => fileInput.click());
     
@@ -598,14 +778,12 @@ if (agreementModal) {
     if (idErrorMsg) idErrorMsg.textContent = '';
     if (dropZone) dropZone.classList.remove('invalid');
     
-    // Check file size (10MB limit)
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       if (idErrorMsg) idErrorMsg.textContent = 'File is too large. Maximum size is 10MB.';
       return;
     }
     
-    // Check file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       if (idErrorMsg) idErrorMsg.textContent = 'Unsupported file format. Please upload JPG, PNG, WEBP, or PDF.';
@@ -614,11 +792,10 @@ if (agreementModal) {
     
     const reader = new FileReader();
     reader.onload = (e) => {
-      uploadedFileBase64 = e.target.result; // data url format
+      uploadedFileBase64 = e.target.result;
       uploadedFileName = file.name;
       uploadedFileType = file.type;
       
-      // Update UI preview
       if (previewFileName) previewFileName.textContent = file.name;
       if (previewFileSize) {
         const sizeKB = (file.size / 1024).toFixed(1);
@@ -645,103 +822,62 @@ if (agreementModal) {
     });
   }
 
-  // Signature Pad Logic
-  const getPointerPos = (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    return {
-      x: clientX - rect.left,
-      y: clientY - rect.top
-    };
-  };
-
-  const startDrawing = (e) => {
-    isDrawing = true;
-    const pos = getPointerPos(e);
-    ctx.beginPath();
-    ctx.moveTo(pos.x, pos.y);
-    isCanvasBlank = false;
-    if (sigErrorMsg) sigErrorMsg.textContent = '';
-    const group = canvas.closest('.form-group') || canvas.parentElement;
-    group.classList.remove('invalid');
-    e.preventDefault();
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    const pos = getPointerPos(e);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    e.preventDefault();
-  };
-
-  const stopDrawing = () => {
-    isDrawing = false;
-  };
-
-  if (canvas && ctx) {
-    // Mouse Support
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseleave', stopDrawing);
-    
-    // Touch Support for mobile device layout
-    canvas.addEventListener('touchstart', startDrawing, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', stopDrawing);
-    canvas.addEventListener('touchcancel', stopDrawing);
-  }
-
-  if (btnClearSig) {
-    btnClearSig.addEventListener('click', () => {
-      if (ctx && canvas) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        isCanvasBlank = true;
-      }
-    });
-  }
-
-  // Signature Tab Switching
+  // Signature Tab Switching for Wizard
   const selectSigTab = (mode) => {
-    sigMode = mode;
+    wizardSigMode = mode;
     
     if (mode === 'draw') {
-      tabDraw.classList.add('active');
-      tabDraw.setAttribute('aria-selected', 'true');
-      tabType.classList.remove('active');
-      tabType.setAttribute('aria-selected', 'false');
+      wizardTabDraw.classList.add('active');
+      wizardTabDraw.setAttribute('aria-selected', 'true');
+      wizardTabType.classList.remove('active');
+      wizardTabType.setAttribute('aria-selected', 'false');
       
-      panelDraw.style.display = 'block';
-      panelType.style.display = 'none';
+      wizardPanelDraw.style.display = 'block';
+      wizardPanelType.style.display = 'none';
     } else {
-      tabType.classList.add('active');
-      tabType.setAttribute('aria-selected', 'true');
-      tabDraw.classList.remove('active');
-      tabDraw.setAttribute('aria-selected', 'false');
+      wizardTabType.classList.add('active');
+      wizardTabType.setAttribute('aria-selected', 'true');
+      wizardTabDraw.classList.remove('active');
+      wizardTabDraw.setAttribute('aria-selected', 'false');
       
-      panelType.style.display = 'block';
-      panelDraw.style.display = 'none';
+      wizardPanelType.style.display = 'block';
+      wizardPanelDraw.style.display = 'none';
       
-      // Auto-fill typed signature with first and last name if available
       const firstName = document.getElementById('wizard-first-name').value.trim();
       const lastName = document.getElementById('wizard-last-name').value.trim();
-      if ((firstName || lastName) && typedSigInput && !typedSigInput.value) {
-        typedSigInput.value = `${firstName} ${lastName}`;
+      if ((firstName || lastName) && wizardTypedSigInput && !wizardTypedSigInput.value) {
+        wizardTypedSigInput.value = `${firstName} ${lastName}`;
       }
     }
   };
 
-  if (tabDraw && tabType) {
-    tabDraw.addEventListener('click', () => selectSigTab('draw'));
-    tabType.addEventListener('click', () => selectSigTab('type'));
+  if (wizardTabDraw && wizardTabType) {
+    wizardTabDraw.addEventListener('click', () => selectSigTab('draw'));
+    wizardTabType.addEventListener('click', () => selectSigTab('type'));
   }
 
-  // Submit Form Function
+  // Policy Scroll Detection for Wizard
+  const wizardPolicyBox = document.getElementById('wizard-policy-box');
+  const wizardLockedContainer = document.getElementById('wizard-locked-sig-container');
+  const wizardScrollAlert = document.getElementById('wizard-scroll-alert');
+
+  if (wizardPolicyBox) {
+    wizardPolicyBox.addEventListener('scroll', () => {
+      const isAtBottom = wizardPolicyBox.scrollTop + wizardPolicyBox.clientHeight >= wizardPolicyBox.scrollHeight - 15;
+      if (isAtBottom && wizardLockedContainer && wizardLockedContainer.classList.contains('locked')) {
+        wizardLockedContainer.classList.remove('locked');
+        if (wizardScrollAlert) wizardScrollAlert.style.display = 'none';
+        
+        const disabledElements = wizardLockedContainer.querySelectorAll('input, button');
+        disabledElements.forEach(el => el.removeAttribute('disabled'));
+      }
+    });
+  }
+
+  // Submit Wizard Form
   const submitWizardForm = async () => {
-    goToStep(5); // Show loading step
-    wizardFooter.style.display = 'none'; // hide navigation buttons
+    goToStep(5);
+    wizardFooter.style.display = 'none';
     
     const formData = new FormData(wizardForm);
     const payload = {
@@ -758,14 +894,14 @@ if (agreementModal) {
       },
       date_of_signing: signingDateInput.value,
       signature: {
-        type: sigMode
+        type: wizardSigMode
       }
     };
     
-    if (sigMode === 'draw') {
-      payload.signature.data = canvas.toDataURL('image/png'); // base64 representation of drawing
+    if (wizardSigMode === 'draw') {
+      payload.signature.data = wizardSigPad.getDataURL();
     } else {
-      payload.signature.data = typedSigInput.value.trim();
+      payload.signature.data = wizardTypedSigInput.value.trim();
     }
     
     try {
@@ -792,5 +928,353 @@ if (agreementModal) {
       document.getElementById('wizard-status-error').style.display = 'flex';
     }
   };
+}
+
+// --- Homepage Form Handlers ---
+if (homepageForm) {
+  // Policy Scroll Detection for Homepage
+  if (homepagePolicyBox) {
+    homepagePolicyBox.addEventListener('scroll', () => {
+      const isAtBottom = homepagePolicyBox.scrollTop + homepagePolicyBox.clientHeight >= homepagePolicyBox.scrollHeight - 15;
+      if (isAtBottom && homepageForm.classList.contains('locked')) {
+        homepageForm.classList.remove('locked');
+        if (homepageScrollAlert) homepageScrollAlert.style.display = 'none';
+        
+        // Enable all inputs inside the form
+        const disabledElements = homepageForm.querySelectorAll('input, select, button');
+        disabledElements.forEach(el => el.removeAttribute('disabled'));
+        
+        // Enable drag & drop zone pointer-events
+        if (homepageDropZone) homepageDropZone.style.pointerEvents = 'auto';
+        
+        // Resize homepage signature pad since container might have been blurred/hidden
+        setTimeout(() => {
+          if (homepageSigPad) homepageSigPad.resize();
+        }, 100);
+      }
+    });
+  }
+
+  // Drag & Drop for Homepage
+  if (homepageDropZone && homepageFileInput) {
+    homepageDropZone.addEventListener('click', () => {
+      if (!homepageForm.classList.contains('locked')) {
+        homepageFileInput.click();
+      }
+    });
+    
+    homepageDropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!homepageForm.classList.contains('locked')) {
+        homepageDropZone.classList.add('dragover');
+      }
+    });
+    
+    ['dragleave', 'dragend'].forEach(eventName => {
+      homepageDropZone.addEventListener(eventName, () => {
+        homepageDropZone.classList.remove('dragover');
+      });
+    });
+    
+    homepageDropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      homepageDropZone.classList.remove('dragover');
+      if (homepageForm.classList.contains('locked')) return;
+      
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        processHomepageUploadedFile(files[0]);
+      }
+    });
+    
+    homepageFileInput.addEventListener('change', () => {
+      if (homepageFileInput.files.length > 0) {
+        processHomepageUploadedFile(homepageFileInput.files[0]);
+      }
+    });
+  }
+
+  const processHomepageUploadedFile = (file) => {
+    if (homepageIdErrorMsg) homepageIdErrorMsg.textContent = '';
+    if (homepageDropZone) homepageDropZone.classList.remove('invalid');
+    
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      if (homepageIdErrorMsg) homepageIdErrorMsg.textContent = 'File is too large. Maximum size is 10MB.';
+      return;
+    }
+    
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      if (homepageIdErrorMsg) homepageIdErrorMsg.textContent = 'Unsupported file format. Please upload JPG, PNG, WEBP, or PDF.';
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      homepageUploadedFileBase64 = e.target.result;
+      homepageUploadedFileName = file.name;
+      homepageUploadedFileType = file.type;
+      
+      if (homepagePreviewFileName) homepagePreviewFileName.textContent = file.name;
+      if (homepagePreviewFileSize) {
+        const sizeKB = (file.size / 1024).toFixed(1);
+        homepagePreviewFileSize.textContent = sizeKB > 1000 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+      }
+      
+      if (homepageDropZone) homepageDropZone.style.display = 'none';
+      if (homepagePreviewContainer) homepagePreviewContainer.style.display = 'flex';
+    };
+    reader.onerror = () => {
+      if (homepageIdErrorMsg) homepageIdErrorMsg.textContent = 'Error reading file. Please try again.';
+    };
+    reader.readAsDataURL(file);
+  };
+
+  if (homepageBtnRemoveFile) {
+    homepageBtnRemoveFile.addEventListener('click', () => {
+      homepageUploadedFileBase64 = null;
+      homepageUploadedFileName = '';
+      homepageUploadedFileType = '';
+      if (homepageFileInput) homepageFileInput.value = '';
+      if (homepagePreviewContainer) homepagePreviewContainer.style.display = 'none';
+      if (homepageDropZone) homepageDropZone.style.display = 'block';
+    });
+  }
+
+  // Signature Tabs for Homepage
+  const selectHomepageSigTab = (mode) => {
+    homepageSigMode = mode;
+    
+    if (mode === 'draw') {
+      homepageTabDraw.classList.add('active');
+      homepageTabDraw.setAttribute('aria-selected', 'true');
+      homepageTabType.classList.remove('active');
+      homepageTabType.setAttribute('aria-selected', 'false');
+      
+      homepagePanelDraw.style.display = 'block';
+      homepagePanelType.style.display = 'none';
+    } else {
+      homepageTabType.classList.add('active');
+      homepageTabType.setAttribute('aria-selected', 'true');
+      homepageTabDraw.classList.remove('active');
+      homepageTabDraw.setAttribute('aria-selected', 'false');
+      
+      homepagePanelType.style.display = 'block';
+      homepagePanelDraw.style.display = 'none';
+      
+      const firstName = document.getElementById('homepage-first-name').value.trim();
+      const lastName = document.getElementById('homepage-last-name').value.trim();
+      if ((firstName || lastName) && homepageTypedSigInput && !homepageTypedSigInput.value) {
+        homepageTypedSigInput.value = `${firstName} ${lastName}`;
+      }
+    }
+  };
+
+  if (homepageTabDraw && homepageTabType) {
+    homepageTabDraw.addEventListener('click', () => selectHomepageSigTab('draw'));
+    homepageTabType.addEventListener('click', () => selectHomepageSigTab('type'));
+  }
+
+  // Validation
+  const validateHomepageForm = () => {
+    let isValid = true;
+    
+    const errorMsgs = homepageForm.querySelectorAll('.error-msg');
+    errorMsgs.forEach(el => el.textContent = '');
+    const invalidGroups = homepageForm.querySelectorAll('.form-group.invalid');
+    invalidGroups.forEach(el => el.classList.remove('invalid'));
+    
+    const consentGroup = homepageForm.querySelector('.disclaimer-consent');
+    if (consentGroup) consentGroup.classList.remove('invalid');
+    
+    const firstNameInput = document.getElementById('homepage-first-name');
+    if (!firstNameInput.value.trim()) {
+      markHomepageInvalid(firstNameInput, 'First name is required.');
+      isValid = false;
+    }
+    
+    const lastNameInput = document.getElementById('homepage-last-name');
+    if (!lastNameInput.value.trim()) {
+      markHomepageInvalid(lastNameInput, 'Last name is required.');
+      isValid = false;
+    }
+    
+    const emailInput = document.getElementById('homepage-email');
+    const emailVal = emailInput.value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailVal) {
+      markHomepageInvalid(emailInput, 'Email is required.');
+      isValid = false;
+    } else if (!emailRegex.test(emailVal)) {
+      markHomepageInvalid(emailInput, 'Please enter a valid email address.');
+      isValid = false;
+    }
+    
+    const phoneInput = document.getElementById('homepage-phone');
+    if (!phoneInput.value.trim()) {
+      markHomepageInvalid(phoneInput, 'Phone number is required.');
+      isValid = false;
+    }
+    
+    const termInput = document.getElementById('homepage-membership-term');
+    if (!termInput.value) {
+      markHomepageInvalid(termInput, 'Membership term is required.');
+      isValid = false;
+    }
+    
+    const startDateVal = homepageStartDateInput.value;
+    if (!startDateVal) {
+      markHomepageInvalid(homepageStartDateInput, 'Start date is required.');
+      isValid = false;
+    } else {
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const selectedDate = new Date(startDateVal);
+      selectedDate.setHours(0,0,0,0);
+      if (selectedDate < today) {
+        markHomepageInvalid(homepageStartDateInput, 'Start date cannot be in the past.');
+        isValid = false;
+      }
+    }
+    
+    if (!homepageUploadedFileBase64) {
+      if (homepageDropZone) homepageDropZone.classList.add('invalid');
+      if (homepageIdErrorMsg) homepageIdErrorMsg.textContent = 'Government photo ID is required to register.';
+      isValid = false;
+    }
+    
+    const consentCheckbox = document.getElementById('homepage-consent');
+    if (!consentCheckbox.checked) {
+      if (consentGroup) consentGroup.classList.add('invalid');
+      if (homepageSigErrorMsg) homepageSigErrorMsg.textContent = 'You must agree to the terms to proceed.';
+      isValid = false;
+    }
+    
+    if (isValid) {
+      if (homepageSigMode === 'draw') {
+        if (!homepageSigPad || homepageSigPad.isBlank()) {
+          markHomepageInvalid(homepageCanvas, 'Please draw your signature.');
+          if (homepageSigErrorMsg) homepageSigErrorMsg.textContent = 'Please draw your signature to sign.';
+          isValid = false;
+        }
+      } else {
+        if (!homepageTypedSigInput.value.trim()) {
+          markHomepageInvalid(homepageTypedSigInput, 'Please type your signature.');
+          if (homepageSigErrorMsg) homepageSigErrorMsg.textContent = 'Please type your name to sign.';
+          isValid = false;
+        }
+      }
+    }
+    
+    return isValid;
+  };
+
+  const markHomepageInvalid = (element, message) => {
+    const group = element.closest('.form-group') || element.parentElement;
+    group.classList.add('invalid');
+    let errorSpan = group.querySelector('.error-msg');
+    if (!errorSpan && element === homepageCanvas) errorSpan = homepageSigErrorMsg;
+    if (errorSpan) {
+      errorSpan.textContent = message;
+    }
+  };
+
+  // Submit homepage form
+  const submitHomepageForm = async (e) => {
+    e.preventDefault();
+    if (!validateHomepageForm()) return;
+    
+    const loader = document.getElementById('homepage-status-loading');
+    const successScreen = document.getElementById('homepage-status-success');
+    const errorScreen = document.getElementById('homepage-status-error');
+    const submitBtn = document.getElementById('btn-homepage-submit');
+    
+    if (loader) loader.style.display = 'flex';
+    if (successScreen) successScreen.style.display = 'none';
+    if (errorScreen) errorScreen.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = true;
+    
+    const formData = new FormData(homepageForm);
+    const payload = {
+      first_name: formData.get('first_name'),
+      last_name: formData.get('last_name'),
+      email: formData.get('email'),
+      phone: formData.get('phone'),
+      membership_term: formData.get('membership_term'),
+      membership_start_date: formData.get('membership_start_date'),
+      copy_of_id: {
+        base64: homepageUploadedFileBase64,
+        filename: homepageUploadedFileName,
+        mimeType: homepageUploadedFileType
+      },
+      date_of_signing: homepageSigningDateInput.value,
+      signature: {
+        type: homepageSigMode
+      }
+    };
+    
+    if (homepageSigMode === 'draw') {
+      payload.signature.data = homepageSigPad.getDataURL();
+    } else {
+      payload.signature.data = homepageTypedSigInput.value.trim();
+    }
+    
+    try {
+      const response = await fetch('/api/submit-agreement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok && result.success) {
+        if (loader) loader.style.display = 'none';
+        if (successScreen) successScreen.style.display = 'flex';
+        
+        homepageForm.reset();
+        if (homepageSigPad) homepageSigPad.clear();
+        homepageUploadedFileBase64 = null;
+        homepageUploadedFileName = '';
+        homepageUploadedFileType = '';
+        
+        if (homepagePreviewContainer) homepagePreviewContainer.style.display = 'none';
+        if (homepageDropZone) homepageDropZone.style.display = 'block';
+        
+        // Re-lock homepage form
+        homepageForm.classList.add('locked');
+        if (homepageScrollAlert) homepageScrollAlert.style.display = 'flex';
+        if (homepagePolicyBox) homepagePolicyBox.scrollTop = 0;
+        
+        const disabledElements = homepageForm.querySelectorAll('input, select, button');
+        disabledElements.forEach(el => el.setAttribute('disabled', ''));
+        if (homepageDropZone) homepageDropZone.style.pointerEvents = 'none';
+      } else {
+        throw new Error(result.error || 'Server rejected submission');
+      }
+    } catch (error) {
+      console.error('Homepage submission error:', error);
+      const errorText = document.getElementById('homepage-error-text');
+      if (errorText) errorText.textContent = error.message || 'There was a problem submitting your agreement. Please try again.';
+      if (loader) loader.style.display = 'none';
+      if (errorScreen) errorScreen.style.display = 'flex';
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  };
+
+  homepageForm.addEventListener('submit', submitHomepageForm);
+
+  const homepageRetryBtn = document.getElementById('homepage-btn-retry');
+  if (homepageRetryBtn) {
+    homepageRetryBtn.addEventListener('click', () => {
+      const errorScreen = document.getElementById('homepage-status-error');
+      const submitBtn = document.getElementById('btn-homepage-submit');
+      if (errorScreen) errorScreen.style.display = 'none';
+      if (submitBtn) submitBtn.disabled = false;
+    });
+  }
 }
 
