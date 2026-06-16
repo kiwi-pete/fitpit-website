@@ -160,6 +160,10 @@ html {
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent sideways scrolling on mobile. Setting it on <html> (not just
+     <body>) is required for iOS Safari to actually honour it. */
+  overflow-x: hidden;
+  width: 100%;
 }
 
 body {
@@ -169,6 +173,8 @@ body {
   color: var(--color-text-primary);
   background-color: var(--color-bg);
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 
 img {
@@ -1829,6 +1835,34 @@ button {
 }
 
 /* ---------- Responsive ---------- */
+
+/* On phones the large desktop spacing tokens stack up into big empty bands
+   between sections. Scaling the tokens down here tightens every section at
+   once — including inline styles that reference these same variables
+   (e.g. the membership form's margin-top: var(--space-3xl)). */
+@media (max-width: 768px) {
+  :root {
+    --section-padding: clamp(2.75rem, 7vw, 4rem) clamp(1rem, 5vw, 1.5rem);
+    --space-3xl: 4rem;
+    --space-2xl: 2.75rem;
+    --space-xl: 2rem;
+  }
+
+  /* Keep media, canvases and embeds within the viewport so nothing forces
+     horizontal scrolling. */
+  img,
+  iframe,
+  canvas,
+  video,
+  table {
+    max-width: 100%;
+  }
+
+  .canvas-container canvas {
+    width: 100%;
+  }
+}
+
 @media (max-width: 1024px) {
   .pricing-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -1883,7 +1917,7 @@ button {
   /* Grids */
   .about-grid,
   .womens-grid,
-  .clinic-content,
+  .clinic-grid,
   .contact-grid {
     grid-template-columns: 1fr;
     gap: var(--space-xl);
@@ -3194,7 +3228,8 @@ button {
   overflow: hidden;
 }
 
-#signature-canvas {
+#signature-canvas,
+.canvas-container canvas {
   display: block;
   width: 100%;
   height: 150px;
