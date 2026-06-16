@@ -19,6 +19,15 @@
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>" />
 
+  <!-- Fonts: preconnect + a single combined request in <head> so they don't
+       sit behind a CSS @import chain (faster first text paint). -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600&family=Sacramento&display=swap" />
+
+  <!-- Preload the hero image (largest element on the first screen) -->
+  <link rel="preload" as="image" href="/images/hero.jpg" fetchpriority="high" />
+
   <!-- Stylesheet -->
   <link rel="stylesheet" href="/style.css" />
 </head>
@@ -94,7 +103,7 @@
     <div class="container">
       <div class="about-grid">
         <div class="about-image reveal">
-          <img src="/images/about.png" alt="Fit Pit gym photo – equipment and facility" width="1200" height="1240" loading="lazy" />
+          <img src="/images/about.webp" alt="Fit Pit gym photo – equipment and facility" width="1200" height="1240" loading="lazy" />
         </div>
         <div class="about-text">
           <p class="section-label reveal">About Fit Pit</p>
@@ -383,7 +392,7 @@
             <p class="womens-desc">A private, supportive environment for women to train at their best.</p>
           </div>
           <div class="womens-highlight-image">
-            <img src="/images/womens.png" alt="Women's fitness at Fit Pit" width="600" height="512" loading="lazy" />
+            <img src="/images/womens.webp" alt="Women's fitness at Fit Pit" width="600" height="512" loading="lazy" />
           </div>
         </div>
       </div>
