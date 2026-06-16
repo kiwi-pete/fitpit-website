@@ -1278,3 +1278,36 @@ if (homepageForm) {
   }
 }
 
+// ---------- Idle Prefetch of Below-the-Fold Images ----------
+// Once the page (including the hero) has fully loaded and the browser is
+// sitting idle, quietly warm the below-the-fold images in the background at
+// low priority. By the time the visitor scrolls down they're already cached,
+// so there's no lazy-load pop-in — without ever competing with the hero/first
+// paint or wasting bandwidth at the critical moment.
+function prefetchBelowFoldImages() {
+  // Only the lazy <img> elements; the eager hero is already loaded, and the
+  // lazy Google Maps <iframe> is intentionally left alone.
+  document.querySelectorAll('img[loading="lazy"]').forEach(img => {
+    const src = img.currentSrc || img.getAttribute('src');
+    if (!src) return;
+    const warm = new Image();
+    warm.decoding = 'async';
+    if ('fetchPriority' in warm) warm.fetchPriority = 'low';
+    warm.src = src; // served from cache when the real <img> enters the viewport
+  });
+}
+
+function scheduleIdlePrefetch() {
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(prefetchBelowFoldImages, { timeout: 4000 });
+  } else {
+    setTimeout(prefetchBelowFoldImages, 1500);
+  }
+}
+
+if (document.readyState === 'complete') {
+  scheduleIdlePrefetch();
+} else {
+  window.addEventListener('load', scheduleIdlePrefetch, { once: true });
+}
+
