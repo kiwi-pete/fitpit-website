@@ -1863,236 +1863,6 @@ button {
   }
 }
 
-@media (max-width: 1024px) {
-  .pricing-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .pricing-card:nth-child(5) {
-    grid-column: 1 / 3;
-  }
-
-  .footer-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-xl);
-  }
-}
-
-@media (max-width: 768px) {
-  /* Navigation */
-  .nav-links {
-    position: fixed;
-    top: 0;
-    right: -100%;
-    width: 80%;
-    max-width: 360px;
-    height: 100vh;
-    background: rgba(10, 10, 10, 0.97);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    flex-direction: column;
-    justify-content: center;
-    padding: var(--space-xl);
-    gap: var(--space-lg);
-    transition: right var(--transition-base);
-    border-left: 1px solid var(--color-border);
-  }
-
-  .nav-links.open {
-    right: 0;
-  }
-
-  .nav-links a {
-    font-size: var(--text-lg);
-  }
-
-  .nav-cta {
-    margin-left: 0;
-    margin-top: var(--space-sm);
-  }
-
-  .menu-toggle {
-    display: flex;
-  }
-
-  /* Grids */
-  .about-grid,
-  .womens-grid,
-  .clinic-grid,
-  .contact-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-xl);
-  }
-
-  .services-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-md);
-  }
-
-  .pricing-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .pricing-card:nth-child(5) {
-    grid-column: auto;
-  }
-
-  .about-stats {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .clinic-discount-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .clinic-services-table table {
-    font-size: var(--text-xs);
-  }
-
-  .clinic-services-table thead th,
-  .clinic-services-table tbody td {
-    padding: var(--space-xs) var(--space-sm);
-  }
-
-  .clinic-modal {
-    padding: var(--space-lg) var(--space-md);
-  }
-
-  .clinic-modal-contact-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-sm);
-  }
-
-  .pt-pricing {
-    grid-template-columns: 1fr;
-  }
-
-  .footer-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-lg);
-  }
-
-  .footer-bottom {
-    flex-direction: column;
-    gap: var(--space-sm);
-    text-align: center;
-  }
-
-  /* Womens section: reorder on mobile */
-  .womens-grid .womens-image {
-    order: -1;
-  }
-
-  .contact-map {
-    min-height: 300px;
-  }
-
-  .contact-map iframe {
-    min-height: 300px;
-  }
-
-  /* Personal Training */
-  .pt-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-xl);
-  }
-
-  .pt-pricing-card {
-    order: 0;
-  }
-
-  /* Classes */
-  .classes-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  /* Accordion */
-  .accordion-panel-content {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Shop */
-  .shop-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Facility photos */
-  .facility-photos {
-    grid-template-columns: 1fr;
-  }
-
-  .facility-photo-main {
-    grid-row: auto;
-  }
-
-  /* Women's highlight */
-  .womens-highlight-inner {
-    grid-template-columns: 1fr;
-  }
-
-  .womens-highlight-image {
-    max-height: 250px;
-  }
-
-  /* Classes info */
-  .classes-info {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .classes-info-inner {
-    flex-direction: column;
-  }
-
-  /* Theme switcher */
-  .theme-switcher {
-    gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
-  }
-
-  .theme-switcher-label {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .about-stats {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-actions {
-    flex-direction: column;
-    width: 100%;
-  }
-
-  .hero-actions .btn {
-    width: 100%;
-  }
-
-  /* Classes */
-  .classes-grid {
-    grid-template-columns: 1fr;
-  }
-
-  /* Accordion */
-  .accordion-panel-content {
-    grid-template-columns: 1fr;
-  }
-
-  /* Shop */
-  .shop-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .clinic-modal {
-    padding: var(--space-md) var(--space-sm);
-    width: 95%;
-  }
-
-  .clinic-modal-header h3 {
-    font-size: var(--text-lg);
-  }
-}
-
 /* ========== Personal Training ========== */
 .personal-training {
   background: var(--color-bg-elevated);
@@ -3556,3 +3326,237 @@ button {
   min-height: 20px;
 }
 
+/* ============================================
+   Responsive overrides (kept at END of file)
+   These mobile rules must come after every component's base styles
+   so they win on source order — media queries do not add specificity.
+   ============================================ */
+@media (max-width: 1024px) {
+  .pricing-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .pricing-card:nth-child(5) {
+    grid-column: 1 / 3;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+  }
+}
+
+@media (max-width: 768px) {
+  /* Navigation */
+  .nav-links {
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 80%;
+    max-width: 360px;
+    height: 100vh;
+    background: rgba(10, 10, 10, 0.97);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--space-xl);
+    gap: var(--space-lg);
+    transition: right var(--transition-base);
+    border-left: 1px solid var(--color-border);
+  }
+
+  .nav-links.open {
+    right: 0;
+  }
+
+  .nav-links a {
+    font-size: var(--text-lg);
+  }
+
+  .nav-cta {
+    margin-left: 0;
+    margin-top: var(--space-sm);
+  }
+
+  .menu-toggle {
+    display: flex;
+  }
+
+  /* Grids */
+  .about-grid,
+  .womens-grid,
+  .clinic-grid,
+  .contact-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-card:nth-child(5) {
+    grid-column: auto;
+  }
+
+  .about-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .clinic-discount-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .clinic-services-table table {
+    font-size: var(--text-xs);
+  }
+
+  .clinic-services-table thead th,
+  .clinic-services-table tbody td {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  .clinic-modal {
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .clinic-modal-contact-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-sm);
+  }
+
+  .pt-pricing {
+    grid-template-columns: 1fr;
+  }
+
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: var(--space-sm);
+    text-align: center;
+  }
+
+  /* Womens section: reorder on mobile */
+  .womens-grid .womens-image {
+    order: -1;
+  }
+
+  .contact-map {
+    min-height: 300px;
+  }
+
+  .contact-map iframe {
+    min-height: 300px;
+  }
+
+  /* Personal Training */
+  .pt-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+
+  .pt-pricing-card {
+    order: 0;
+  }
+
+  /* Classes */
+  .classes-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Accordion */
+  .accordion-panel-content {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Shop */
+  .shop-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Facility photos */
+  .facility-photos {
+    grid-template-columns: 1fr;
+  }
+
+  .facility-photo-main {
+    grid-row: auto;
+  }
+
+  /* Women's highlight */
+  .womens-highlight-inner {
+    grid-template-columns: 1fr;
+  }
+
+  .womens-highlight-image {
+    max-height: 250px;
+  }
+
+  /* Classes info */
+  .classes-info {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .classes-info-inner {
+    flex-direction: column;
+  }
+
+  /* Theme switcher */
+  .theme-switcher {
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+  }
+
+  .theme-switcher-label {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .hero-actions .btn {
+    width: 100%;
+  }
+
+  /* Classes */
+  .classes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Accordion */
+  .accordion-panel-content {
+    grid-template-columns: 1fr;
+  }
+
+  /* Shop */
+  .shop-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clinic-modal {
+    padding: var(--space-md) var(--space-sm);
+    width: 95%;
+  }
+
+  .clinic-modal-header h3 {
+    font-size: var(--text-lg);
+  }
+}
