@@ -2,6 +2,10 @@
    FitPit ZNZ — Interactive Functionality
    ============================================ */
 
+// First-party, cookie-free analytics (self-contained; never tracks
+// the admin dashboard, bots or crawlers). See analytics-client.js.
+import './analytics-client.js';
+
 // ---------- Theme Switcher ----------
 const themeBtns = document.querySelectorAll('.theme-btn');
 
@@ -916,6 +920,7 @@ if (agreementModal) {
       const result = await response.json();
       
       if (response.ok && result.success) {
+        window.fpTrack?.('conversion', { page: 'passes', label: 'Membership Agreement' });
         document.getElementById('wizard-status-loading').style.display = 'none';
         document.getElementById('wizard-status-success').style.display = 'flex';
       } else {
@@ -1232,6 +1237,7 @@ if (homepageForm) {
       const result = await response.json();
       
       if (response.ok && result.success) {
+        window.fpTrack?.('conversion', { page: 'passes', label: 'Membership Agreement' });
         if (loader) loader.style.display = 'none';
         if (successScreen) successScreen.style.display = 'flex';
         

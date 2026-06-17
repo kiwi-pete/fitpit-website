@@ -1,0 +1,168 @@
+/* Fit Pit analytics dashboard — clean white cards, teal accent */
+:root {
+  --bg: #f4f6f9;
+  --card: #ffffff;
+  --ink: #0f2330;
+  --ink-soft: #5b6b78;
+  --line: #e7ecf1;
+  --teal: #0fb5ad;
+  --teal-dark: #0b8f89;
+  --teal-soft: #d4f3f1;
+  --violet: #6c7bf7;
+  --shadow: 0 6px 22px rgba(20, 45, 60, 0.07);
+  --radius: 16px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dash {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 20px 60px;
+}
+
+.dash-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.dash-head h1 {
+  margin: 0;
+  font-size: 1.7rem;
+  letter-spacing: -0.02em;
+}
+.dash-head .sub { margin: 4px 0 0; color: var(--ink-soft); font-size: 0.9rem; }
+
+.ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: var(--card);
+  padding: 6px;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+.ranges button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ranges button:hover { color: var(--ink); }
+.ranges button.active { background: var(--teal); color: #fff; }
+
+.status {
+  background: #fff4f4;
+  border: 1px solid #ffd7d7;
+  color: #a12626;
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  margin-bottom: 18px;
+  font-size: 0.9rem;
+}
+.status.info { background: var(--teal-soft); border-color: #b9e9e6; color: var(--teal-dark); }
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.metric {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+}
+.metric .label { color: var(--ink-soft); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.metric .value { font-size: 2rem; font-weight: 800; margin-top: 6px; letter-spacing: -0.02em; }
+.metric .value small { font-size: 1rem; font-weight: 600; color: var(--ink-soft); }
+.metric .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.chip { background: var(--teal-soft); color: var(--teal-dark); font-size: 0.72rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+  margin-bottom: 18px;
+}
+.card.wide { width: 100%; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.card-head h2 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.card-head .muted { color: var(--ink-soft); font-weight: 500; font-size: 0.8rem; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+
+.legend { display: flex; gap: 16px; font-size: 0.8rem; color: var(--ink-soft); }
+.legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.dot-views { background: var(--teal); }
+.dot-visitors { background: var(--violet); }
+
+.chart { width: 100%; overflow: hidden; }
+.chart svg { width: 100%; height: 240px; display: block; }
+
+.bars { display: flex; flex-direction: column; gap: 11px; }
+.bar-row { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: 10px; font-size: 0.86rem; }
+.bar-row .bl { color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-track { background: #eef2f6; border-radius: 999px; height: 10px; overflow: hidden; }
+.bar-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--teal-dark)); border-radius: 999px; }
+.bar-row .bv { text-align: right; font-weight: 700; color: var(--ink-soft); }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { text-align: left; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+th { color: var(--ink-soft); font-weight: 700; font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.04em; }
+td:not(:first-child), th:not(:first-child) { text-align: right; }
+tbody tr:last-child td { border-bottom: 0; }
+td .pill { background: var(--teal-soft); color: var(--teal-dark); padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 0.78rem; }
+td.converted-pos { color: var(--teal-dark); font-weight: 800; }
+
+.vitals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.vital { text-align: center; padding: 16px 10px; background: #f8fafb; border-radius: 12px; }
+.vital .vm { font-size: 0.78rem; color: var(--ink-soft); font-weight: 700; }
+.vital .vv { font-size: 1.5rem; font-weight: 800; margin-top: 4px; }
+.vital .vs { font-size: 0.7rem; color: var(--ink-soft); margin-top: 2px; }
+.vital.good .vv { color: var(--teal-dark); }
+.vital.warn .vv { color: #c98a00; }
+.vital.bad .vv { color: #c0392b; }
+.vital.none .vv { color: var(--ink-soft); font-size: 0.95rem; }
+
+.empty { color: var(--ink-soft); font-size: 0.85rem; padding: 8px 0; }
+
+.dash-foot {
+  margin-top: 26px;
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  max-width: 760px;
+}
+
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: 1fr; }
+  .vitals { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: 1fr 1fr; }
+  .bar-row { grid-template-columns: 92px 1fr 40px; }
+  .dash-head { flex-direction: column; align-items: flex-start; }
+}
