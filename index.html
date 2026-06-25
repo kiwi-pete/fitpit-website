@@ -334,6 +334,7 @@
           <h3>HIIT The Beat</h3>
           <div class="class-trainer">With G</div>
           <p>A high-energy workout synced to the rhythm of the music! Push your limits with intervals designed to torch calories and build endurance.</p>
+          <span class="class-card-cta" aria-hidden="true">See next sessions →</span>
         </div>
 
         <!-- Yoga Sweat -->
@@ -344,6 +345,7 @@
           <h3>Yoga Sweat</h3>
           <div class="class-trainer">With Veronika</div>
           <p>A high-energy class that blends yoga flow with strength and cardio. Find your balance, build flexibility, and leave feeling energised.</p>
+          <span class="class-card-cta" aria-hidden="true">See next sessions →</span>
         </div>
 
         <!-- Next Level -->
@@ -354,6 +356,7 @@
           <h3>"Next Level"</h3>
           <div class="class-trainer">With G</div>
           <p>Take your strength and conditioning to the next level. A challenging full-body class designed to push your fitness boundaries.</p>
+          <span class="class-card-cta" aria-hidden="true">See next sessions →</span>
         </div>
       </div>
 
@@ -768,28 +771,6 @@
           </div>
         </div>
 
-        <!-- Physiotherapist Services Table -->
-        <div class="clinic-services-table" style="margin-top: var(--space-xl);">
-          <h4 data-edit="modal.clinic.physioTitle">Physiotherapist Services — Member Pricing</h4>
-          <div class="table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th>Service</th>
-                  <th>Fit Pit Member Price (USD)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td data-edit="modal.clinic.physio.0.name">First Consultation (status, information, goals)</td><td data-edit="modal.clinic.physio.0.mem">$15</td></tr>
-                <tr><td data-edit="modal.clinic.physio.1.name">Follow Up Visit</td><td data-edit="modal.clinic.physio.1.mem">$12</td></tr>
-                <tr><td data-edit="modal.clinic.physio.2.name">30 Min Massage</td><td data-edit="modal.clinic.physio.2.mem">$12</td></tr>
-                <tr><td data-edit="modal.clinic.physio.3.name">60 Min Massage</td><td data-edit="modal.clinic.physio.3.mem">$22</td></tr>
-                <tr><td data-edit="modal.clinic.physio.4.name">60 Min Physiotherapy Session (specific pain treatment)</td><td data-edit="modal.clinic.physio.4.mem">$22</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
         <!-- Contact Section -->
         <div class="clinic-contact-info">
           <h4 data-edit="modal.clinic.locTitle">AMS Hospital Kiwengwa Location</h4>
@@ -815,6 +796,13 @@
         </div>
       </div>
     </div>
+  </dialog>
+
+  <!-- ==================== Class Sessions Modal ==================== -->
+  <!-- Populated by main.js when a Fitness Classes tile is clicked: shows the
+       next 2 scheduled sessions of that class type, each with a Register control. -->
+  <dialog class="clinic-modal class-sessions-modal" id="class-sessions-modal" closedby="any">
+    <div class="clinic-modal-content" id="class-sessions-body"></div>
   </dialog>
 
   <!-- ==================== Membership Agreement Wizard Modal ==================== -->

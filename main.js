@@ -1356,42 +1356,103 @@ if (document.readyState === 'complete') {
 const footerYear = document.getElementById('footer-year');
 if (footerYear) footerYear.textContent = new Date().getFullYear();
 
+// ---------- Class schedule: shared helpers + inline register flow ----------
+const CS_DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const CS_MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const csEsc = (s) =>
+  String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const csSafeColor = (c) => (/^#[0-9a-fA-F]{3,8}$/.test(c) ? c : 'var(--color-accent)');
+const csSafeUrl = (u) => (/^https?:\/\//.test(u) ? u : '');
+const csFmt = (t) => {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ap = h < 12 ? 'AM' : 'PM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
+};
+const csOrd = (n) => (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+const csYmd = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+const csAddDays = (iso, n) => { const dt = csYmd(iso); dt.setUTCDate(dt.getUTCDate() + n); return dt.toISOString().slice(0, 10); };
+// "today" in gym-local time (East Africa).
+function csTodayIso() {
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi' }).format(new Date()); }
+  catch { return new Date().toISOString().slice(0, 10); }
+}
+
+// "spaces left + Register" (or "Class full") block for one schedule entry.
+function csRegHTML(e) {
+  if (!e || !e.classId) return '';
+  const cap = e.capacity != null ? e.capacity : 12;
+  const spaces = Math.max(0, cap - (e.registered || 0));
+  return `<div class="tt-class-reg" data-classid="${csEsc(e.classId)}">${
+    spaces > 0
+      ? `<span class="tt-spaces">${spaces} space${spaces === 1 ? '' : 's'} left</span><button type="button" class="tt-register-btn">Register</button>`
+      : `<span class="tt-spaces full">Class full</span>`
+  }</div>`;
+}
+
+// Inline register flow: Register → name input → Confirm → POST /api/register.
+// Delegate onto any container that holds .tt-class-reg blocks (timetable grid
+// or the class-sessions modal).
+function csOnRegClick(ev) {
+  const reg = ev.target.closest('.tt-class-reg');
+  if (!reg) return;
+  if (ev.target.closest('.tt-register-btn')) {
+    reg.dataset.orig = reg.innerHTML;
+    reg.innerHTML =
+      '<input type="text" class="tt-reg-input" placeholder="Your name" maxlength="60" aria-label="Your name" />' +
+      '<div class="tt-reg-actions"><button type="button" class="tt-reg-confirm">Confirm</button>' +
+      '<button type="button" class="tt-reg-cancel">Cancel</button></div>';
+    const input = reg.querySelector('.tt-reg-input');
+    input.focus();
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') csSubmitReg(reg); });
+  } else if (ev.target.closest('.tt-reg-cancel')) {
+    if (reg.dataset.orig != null) reg.innerHTML = reg.dataset.orig;
+  } else if (ev.target.closest('.tt-reg-confirm')) {
+    csSubmitReg(reg);
+  }
+}
+
+function csSubmitReg(reg) {
+  const input = reg.querySelector('.tt-reg-input');
+  if (!input) return;
+  const name = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const classId = reg.dataset.classid;
+  reg.querySelectorAll('button, input').forEach((n) => (n.disabled = true));
+  const confirmBtn = reg.querySelector('.tt-reg-confirm');
+  if (confirmBtn) confirmBtn.textContent = '…';
+  fetch('/api/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ classId, name }),
+  })
+    .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+    .then(({ ok, d }) => {
+      if (ok && d.ok) {
+        const left = typeof d.spaces === 'number' ? ` · ${d.spaces} left` : '';
+        reg.innerHTML = `<span class="tt-reg-done">✓ ${d.already ? "You're already on the list" : "You're booked in"}</span><span class="tt-spaces">${csEsc(name)}${left}</span>`;
+      } else {
+        const msg = (d && d.message) || 'Could not register — please try again.';
+        reg.innerHTML = `<span class="tt-spaces full">${csEsc(msg)}</span>` + (reg.dataset.orig != null ? '<button type="button" class="tt-register-btn">Try again</button>' : '');
+      }
+    })
+    .catch(() => {
+      reg.innerHTML = '<span class="tt-spaces full">Network error — please try again.</span><button type="button" class="tt-register-btn">Try again</button>';
+    });
+}
+
 // ---------- Live Class Timetable ----------
-// Pulls the owner-managed dated schedule from /api/classes and renders the
-// timetable in the Classes section — today on the far left, each day labelled
-// with its real date, classes showing their image when set. Shows the next 7
-// days, OR enough further days to reach at least the next 4 classes — whichever
-// spans more (so a quiet week still shows a useful list). Stays hidden if
-// nothing's scheduled or the endpoint is unavailable, so it degrades gracefully.
+// Renders the schedule in the Classes section — today on the far left, each day
+// labelled with its real date, classes showing their image when set. Shows the
+// next 7 days, OR enough further days to reach at least the next 4 classes —
+// whichever spans more. Stays hidden if nothing's scheduled or the endpoint is
+// unavailable, so it degrades gracefully.
 (function initClassSchedule() {
   const host = document.getElementById('class-schedule');
   const grid = document.getElementById('class-schedule-grid');
   if (!host || !grid) return;
-
-  const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-  const esc = (s) =>
-    String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const safeColor = (c) => (/^#[0-9a-fA-F]{3,8}$/.test(c) ? c : 'var(--color-accent)');
-  const safeUrl = (u) => (/^https?:\/\//.test(u) ? u : '');
-  const fmt = (t) => {
-    if (!t) return '';
-    const [h, m] = t.split(':').map(Number);
-    const ap = h < 12 ? 'AM' : 'PM';
-    const h12 = h % 12 === 0 ? 12 : h % 12;
-    return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
-  };
-  const ord = (n) => (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
-
-  // "today" in gym-local time (East Africa), and the next 7 ISO dates.
-  let todayIso;
-  try {
-    todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi' }).format(new Date());
-  } catch {
-    todayIso = new Date().toISOString().slice(0, 10);
-  }
-  const ymd = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
-  const addDays = (iso, n) => { const dt = ymd(iso); dt.setUTCDate(dt.getUTCDate() + n); return dt.toISOString().slice(0, 10); };
+  const todayIso = csTodayIso();
 
   fetch('/api/classes')
     .then((r) => (r.ok ? r.json() : null))
@@ -1409,7 +1470,7 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
       // Pick which days to show: every day in the next 7, plus any further days
       // needed to reach at least the next 4 classes. ISO date strings sort
       // chronologically, so a lexicographic sort/compare is correct here.
-      const lastIn7 = addDays(todayIso, 6);
+      const lastIn7 = csAddDays(todayIso, 6);
       const upcomingDates = Object.keys(byDate).filter((d) => d >= todayIso).sort();
       const chosenDates = [];
       let shownCount = 0;
@@ -1426,31 +1487,21 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
       for (const iso of chosenDates) {
         const entries = (byDate[iso] || []).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
         if (!entries.length) continue;
-        const dt = ymd(iso);
-        const dayName = iso === todayIso ? 'Today' : DOW[dt.getUTCDay()];
-        const dayDate = `${dt.getUTCDate()}${ord(dt.getUTCDate())} ${MON[dt.getUTCMonth()]}`;
+        const dt = csYmd(iso);
+        const dayName = iso === todayIso ? 'Today' : CS_DOW[dt.getUTCDay()];
+        const dayDate = `${dt.getUTCDate()}${csOrd(dt.getUTCDate())} ${CS_MON[dt.getUTCMonth()]}`;
         html += `<div class="tt-day"><div class="tt-day-head"><span class="tt-day-name">${dayName}</span><span class="tt-day-date">${dayDate}</span></div><div class="tt-day-classes">`;
         entries.forEach((e) => {
           const t = tById[e.templateId] || {};
-          const url = safeUrl(t.image || '');
-          const img = url ? `<div class="tt-class-img"><img src="${esc(url)}" alt="${esc(e.name)}" loading="lazy" /></div>` : '';
-          let reg = '';
-          if (e.classId) {
-            const cap = e.capacity != null ? e.capacity : 12;
-            const spaces = Math.max(0, cap - (e.registered || 0));
-            reg = `<div class="tt-class-reg" data-classid="${esc(e.classId)}">${
-              spaces > 0
-                ? `<span class="tt-spaces">${spaces} space${spaces === 1 ? '' : 's'} left</span><button type="button" class="tt-register-btn">Register</button>`
-                : `<span class="tt-spaces full">Class full</span>`
-            }</div>`;
-          }
-          html += `<div class="tt-class${url ? ' has-img' : ''}" style="--c:${safeColor(t.color)}">
+          const url = csSafeUrl(t.image || '');
+          const img = url ? `<div class="tt-class-img"><img src="${csEsc(url)}" alt="${csEsc(e.name)}" loading="lazy" /></div>` : '';
+          html += `<div class="tt-class${url ? ' has-img' : ''}" style="--c:${csSafeColor(t.color)}">
             ${img}
             <div class="tt-class-body">
-              <div class="tt-class-time">${esc(fmt(e.start_time))}${e.end_time ? ' – ' + esc(fmt(e.end_time)) : ''}</div>
-              <div class="tt-class-name">${esc(e.name)}</div>
-              ${t.instructor ? `<div class="tt-class-trainer">${esc(t.instructor)}</div>` : ''}
-              ${reg}
+              <div class="tt-class-time">${csEsc(csFmt(e.start_time))}${e.end_time ? ' – ' + csEsc(csFmt(e.end_time)) : ''}</div>
+              <div class="tt-class-name">${csEsc(e.name)}</div>
+              ${t.instructor ? `<div class="tt-class-trainer">${csEsc(t.instructor)}</div>` : ''}
+              ${csRegHTML(e)}
             </div>
           </div>`;
         });
@@ -1460,57 +1511,90 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
       grid.innerHTML = html;
       host.hidden = false;
       host.classList.add('revealed'); // it was display:none when the reveal observer ran
-      grid.addEventListener('click', onRegClick);
+      grid.addEventListener('click', csOnRegClick);
     })
     .catch(() => {});
+})();
 
-  // Inline register flow: Register → name input → Confirm → POST /api/register.
-  function onRegClick(ev) {
-    const reg = ev.target.closest('.tt-class-reg');
-    if (!reg) return;
-    if (ev.target.closest('.tt-register-btn')) {
-      reg.dataset.orig = reg.innerHTML;
-      reg.innerHTML =
-        '<input type="text" class="tt-reg-input" placeholder="Your name" maxlength="60" aria-label="Your name" />' +
-        '<div class="tt-reg-actions"><button type="button" class="tt-reg-confirm">Confirm</button>' +
-        '<button type="button" class="tt-reg-cancel">Cancel</button></div>';
-      const input = reg.querySelector('.tt-reg-input');
-      input.focus();
-      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitReg(reg); });
-    } else if (ev.target.closest('.tt-reg-cancel')) {
-      if (reg.dataset.orig != null) reg.innerHTML = reg.dataset.orig;
-    } else if (ev.target.closest('.tt-reg-confirm')) {
-      submitReg(reg);
-    }
+// ---------- Class tile → "next sessions" pop-up ----------
+// Clicking a Fitness Classes tile opens a dialog with the next 2 scheduled
+// sessions of that class type (matched by name), each with a Register control.
+// Skipped in the content editor, where the tiles are editable instead.
+if (!FP_EDIT_MODE) (function initClassTileSessions() {
+  const grid = document.getElementById('classes-grid');
+  const modal = document.getElementById('class-sessions-modal');
+  if (!grid || !modal) return;
+  const body = modal.querySelector('#class-sessions-body');
+  if (!body) return;
+  const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+  const open = () => { try { modal.showModal(); } catch { modal.setAttribute('open', ''); } };
+  const close = () => { try { modal.close(); } catch { modal.removeAttribute('open'); } };
+
+  // Register flow + close button, delegated once (survives body re-renders).
+  body.addEventListener('click', csOnRegClick);
+  body.addEventListener('click', (ev) => { if (ev.target.closest('[data-cs-close]')) close(); });
+  modal.addEventListener('click', (ev) => { if (ev.target === modal) close(); }); // backdrop
+
+  grid.addEventListener('click', (ev) => {
+    const card = ev.target.closest('.class-card');
+    if (!card || !grid.contains(card)) return;
+    const h3 = card.querySelector('h3');
+    const name = h3 ? h3.textContent.trim() : '';
+    if (name) openSessions(name);
+  });
+
+  function openSessions(name) {
+    body.innerHTML =
+      '<button class="clinic-modal-close" data-cs-close aria-label="Close">&times;</button>' +
+      `<div class="clinic-modal-header"><h3>${csEsc(name)}</h3><p class="clinic-modal-subtitle">Next sessions</p></div>` +
+      '<p class="cs-empty">Loading sessions…</p>';
+    open();
+    fetch('/api/classes', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const today = csTodayIso();
+        const tById = {};
+        ((data && data.templates) || []).forEach((t) => (tById[t.id] = t));
+        const matches = ((data && data.schedule) || [])
+          .filter((e) => e && e.date && e.date >= today && norm(e.name) === norm(name))
+          .sort((a, b) => (a.date + (a.start_time || '')).localeCompare(b.date + (b.start_time || '')))
+          .slice(0, 2);
+        render(name, matches, tById);
+      })
+      .catch(() => render(name, null, {}));
   }
 
-  function submitReg(reg) {
-    const input = reg.querySelector('.tt-reg-input');
-    if (!input) return;
-    const name = input.value.trim();
-    if (!name) { input.focus(); return; }
-    const classId = reg.dataset.classid;
-    reg.querySelectorAll('button, input').forEach((n) => (n.disabled = true));
-    const confirmBtn = reg.querySelector('.tt-reg-confirm');
-    if (confirmBtn) confirmBtn.textContent = '…';
-    fetch('/api/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ classId, name }),
-    })
-      .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
-      .then(({ ok, d }) => {
-        if (ok && d.ok) {
-          const left = typeof d.spaces === 'number' ? ` · ${d.spaces} left` : '';
-          reg.innerHTML = `<span class="tt-reg-done">✓ ${d.already ? "You're already on the list" : "You're booked in"}</span><span class="tt-spaces">${esc(name)}${left}</span>`;
-        } else {
-          const msg = (d && d.message) || 'Could not register — please try again.';
-          reg.innerHTML = `<span class="tt-spaces full">${esc(msg)}</span>` + (reg.dataset.orig != null ? '<button type="button" class="tt-register-btn">Try again</button>' : '');
-        }
-      })
-      .catch(() => {
-        reg.innerHTML = '<span class="tt-spaces full">Network error — please try again.</span><button type="button" class="tt-register-btn">Try again</button>';
+  function render(name, list, tById) {
+    const today = csTodayIso();
+    let html =
+      '<button class="clinic-modal-close" data-cs-close aria-label="Close">&times;</button>' +
+      `<div class="clinic-modal-header"><h3>${csEsc(name)}</h3><p class="clinic-modal-subtitle">Next sessions</p></div>`;
+    if (list === null) {
+      html += '<p class="cs-empty">Sorry — we couldn\'t load the schedule just now. Please try again.</p>';
+    } else if (!list.length) {
+      html += `<p class="cs-empty">No upcoming ${csEsc(name)} sessions are on the timetable right now. Check back soon, or message us on WhatsApp.</p>`;
+    } else {
+      html += '<div class="cs-list">';
+      list.forEach((e) => {
+        const dt = csYmd(e.date);
+        const dayName = e.date === today ? 'Today' : CS_DOW[dt.getUTCDay()];
+        const dayDate = `${dt.getUTCDate()}${csOrd(dt.getUTCDate())} ${CS_MON[dt.getUTCMonth()]}`;
+        const t = tById[e.templateId] || {};
+        const timeStr = `${csFmt(e.start_time)}${e.end_time ? ' – ' + csFmt(e.end_time) : ''}`;
+        html += `<div class="cs-session">
+          <div class="cs-when">
+            <span class="cs-day">${csEsc(dayName)}</span>
+            <span class="cs-date">${csEsc(dayDate)}</span>
+            <span class="cs-time">${csEsc(timeStr)}</span>
+            ${t.instructor ? `<span class="cs-trainer">${csEsc(t.instructor)}</span>` : ''}
+          </div>
+          ${csRegHTML(e) || '<span class="tt-spaces">Registration opens nearer the time</span>'}
+        </div>`;
       });
+      html += '</div>';
+    }
+    body.innerHTML = html;
   }
 })();
 

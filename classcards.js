@@ -42,9 +42,11 @@ export function cardBannerHTML(card) {
   return `<div class="class-card-icon">${CLASS_ICONS[card.icon] || CLASS_ICONS[DEFAULT_CLASS_ICON]}</div>`;
 }
 
-// Read-only public tile (used by main.js when an override exists).
+// Read-only public tile (used by main.js when an override exists). The CTA
+// hints that the tile is clickable — main.js opens the "next sessions" pop-up.
 export function publicCardHTML(card) {
   const trainer = card.trainer ? `<div class="class-trainer">${esc(card.trainer)}</div>` : '';
   const desc = card.desc ? `<p>${esc(card.desc)}</p>` : '';
-  return `<div class="class-card">${cardBannerHTML(card)}<h3>${esc(card.name || '')}</h3>${trainer}${desc}</div>`;
+  const cta = '<span class="class-card-cta" aria-hidden="true">See next sessions →</span>';
+  return `<div class="class-card">${cardBannerHTML(card)}<h3>${esc(card.name || '')}</h3>${trainer}${desc}${cta}</div>`;
 }

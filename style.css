@@ -2123,6 +2123,38 @@ button {
   transform: scale(1.04);
 }
 
+/* The whole tile is clickable → opens the "next sessions" pop-up. */
+.class-card { cursor: pointer; }
+.class-card-cta {
+  display: inline-block;
+  margin-top: var(--space-md);
+  font-family: var(--font-heading);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  opacity: 0.8;
+  transition: opacity var(--transition-base);
+}
+.class-card:hover .class-card-cta { opacity: 1; }
+
+/* Class sessions modal — next sessions of a clicked class type. */
+.class-sessions-modal .clinic-modal-content { max-width: 460px; }
+.cs-empty { color: var(--color-text-secondary); text-align: center; padding: var(--space-lg) 0; line-height: 1.5; }
+.cs-list { display: flex; flex-direction: column; gap: var(--space-md); }
+.cs-session {
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  padding: var(--space-md) var(--space-lg);
+}
+.cs-when { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.cs-day { font-family: var(--font-heading); font-weight: 800; font-size: var(--text-md); }
+.cs-date { color: var(--color-text-secondary); font-size: var(--text-sm); }
+.cs-time { color: var(--color-accent); font-weight: 700; font-size: var(--text-sm); }
+.cs-trainer { flex-basis: 100%; color: var(--color-text-secondary); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: 0.05em; }
+
 .class-card h3 {
   font-family: var(--font-heading);
   font-size: var(--text-lg);
