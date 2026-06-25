@@ -546,3 +546,60 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
   .ca-row { flex-wrap: wrap; }
 }
 .status.success { background: #e8f7ec; border-color: #c4ebcf; color: #1f7a3d; }
+
+/* ===================== Website Content (WYSIWYG) tab ===================== */
+.wc-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.wc-info {
+  margin: 0;
+  flex: 1 1 420px;
+  color: var(--ink-soft);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+.wc-info strong { color: var(--ink); }
+.wc-open {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--teal-soft);
+  color: var(--teal-dark);
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wc-open:hover { background: #c2ece9; }
+.wc-frame-wrap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  /* Tall enough to comfortably edit the live page in-place. */
+  height: calc(100vh - 230px);
+  min-height: 520px;
+}
+.wc-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+@media (max-width: 640px) {
+  .wc-frame-wrap { height: calc(100vh - 260px); min-height: 440px; }
+}

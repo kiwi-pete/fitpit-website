@@ -16,6 +16,15 @@ const tabs = document.getElementById('tabs');
 
 let unlocked = false;
 let analyticsInit = false;
+let contentInit = false;
+
+// Load the live site (in edit mode) into the Website Content iframe. The iframe
+// is same-origin, so it shares this session's admin PIN from sessionStorage and
+// enters edit mode automatically. Deferred until the tab is first opened.
+function initContentTab() {
+  const frame = document.getElementById('wc-frame');
+  if (frame && !frame.getAttribute('src')) frame.setAttribute('src', '/?edit=1');
+}
 
 async function verify(pin) {
   // Prefer the server check (PIN configurable via CLASS_ADMIN_PIN env). If the
@@ -75,10 +84,15 @@ tabs.addEventListener('click', (e) => {
   const tab = btn.dataset.tab;
   tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
   document.getElementById('tab-classes').hidden = tab !== 'classes';
+  document.getElementById('tab-content').hidden = tab !== 'content';
   document.getElementById('tab-analytics').hidden = tab !== 'analytics';
   if (tab === 'analytics' && !analyticsInit) {
     analyticsInit = true;
     initAnalytics();
+  }
+  if (tab === 'content' && !contentInit) {
+    contentInit = true;
+    initContentTab();
   }
 });
 

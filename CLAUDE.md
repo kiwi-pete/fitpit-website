@@ -27,6 +27,21 @@ candidate in Vercel if something looks wrong.
   available in the web session; the deploy tool only returns instructions).
 - Entry points: `index.html`, `main.js`, `style.css`. Serverless API in `api/`.
 
+## Website Content editor (WYSIWYG)
+
+- The admin (`/secretadminlink` → "Website Content" tab) embeds the live site
+  in an `<iframe src="/?edit=1">`. Editable elements in `index.html` are marked
+  with `data-edit="<key>"` (text) / `data-edit-img="<key>"` (images). Edits are
+  stored as overrides in the dedicated Supabase table `web_site_content`
+  (`api/content.js`) and re-applied on every page load by `applyContentOverrides`
+  in `main.js`. Edit-mode logic is the lazy chunk `siteedit.js`. Replaced photos
+  upload via `api/upload.js` (`folder: 'site-images'`).
+- The editor relies on **same-origin iframing** of the site inside the admin. Do
+  NOT add `X-Frame-Options: DENY/SAMEORIGIN` to `vercel.json`; if a CSP is ever
+  needed, use `Content-Security-Policy: frame-ancestors 'self'` instead.
+- Never annotate dynamic regions with `data-edit`: the `#class-schedule` grid,
+  `#footer-year`, and the membership-agreement modal are intentionally excluded.
+
 ## CSS / responsive notes
 
 - `style.css` is a single large stylesheet. **Responsive media-query overrides
