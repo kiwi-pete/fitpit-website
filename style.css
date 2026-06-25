@@ -2103,6 +2103,26 @@ button {
   color: #000;
 }
 
+/* Optional per-class photo banner (replaces the icon disc when a photo is set).
+   Bleeds to the card edges and rounds the top corners to match the card. */
+.class-card-photo {
+  margin: calc(var(--space-lg) * -1) calc(var(--space-lg) * -1) var(--space-md);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--color-accent-dim);
+}
+.class-card-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform var(--transition-base);
+}
+.class-card:hover .class-card-photo img {
+  transform: scale(1.04);
+}
+
 .class-card h3 {
   font-family: var(--font-heading);
   font-size: var(--text-lg);

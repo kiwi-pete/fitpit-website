@@ -34,6 +34,9 @@ const MAX_KEYS = 400; // text entries
 const MAX_IMG_KEYS = 50;
 const MAX_KEY_LEN = 120;
 const MAX_VAL_LEN = 5000;
+const MAX_CARDS = 24;
+const CARD_ICONS = new Set(['bolt', 'clock', 'bars', 'dumbbell']);
+const isBucketUrl = (v) => typeof v === 'string' && v.length <= 600 && v.startsWith(IMG_PREFIX);
 
 async function sb(path, { method = 'GET', body, repr = false } = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -52,11 +55,12 @@ async function sb(path, { method = 'GET', body, repr = false } = {}) {
 }
 
 async function readContent() {
-  const rows = await sb(`web_site_content?id=eq.${ROW_ID}&select=text,images&limit=1`);
+  const rows = await sb(`web_site_content?id=eq.${ROW_ID}&select=text,images,collections&limit=1`);
   const row = (rows && rows[0]) || {};
   return {
     text: row.text && typeof row.text === 'object' ? row.text : {},
     images: row.images && typeof row.images === 'object' ? row.images : {},
+    collections: row.collections && typeof row.collections === 'object' ? row.collections : {},
   };
 }
 
@@ -90,14 +94,39 @@ function cleanImages(obj) {
   return out;
 }
 
+// Repeatable collections (e.g. the Fitness Classes tiles). Only known shapes
+// are accepted; image URLs must point at our own Storage bucket.
+function cleanCard(c) {
+  if (!c || typeof c !== 'object') return null;
+  const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
+  const card = {
+    id: str(c.id, 60) || `c${Math.random().toString(36).slice(2, 9)}`,
+    icon: CARD_ICONS.has(c.icon) ? c.icon : 'dumbbell',
+    name: str(c.name, 80),
+    trainer: str(c.trainer, 80),
+    desc: str(c.desc, 600),
+    image: isBucketUrl(c.image) ? c.image : '',
+  };
+  if (!card.name && !card.trainer && !card.desc && !card.image) return null; // drop empty
+  return card;
+}
+
+function cleanCollections(obj) {
+  const out = {};
+  if (obj && typeof obj === 'object' && Array.isArray(obj.classCards)) {
+    out.classCards = obj.classCards.slice(0, MAX_CARDS).map(cleanCard).filter(Boolean);
+  }
+  return out;
+}
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    if (!SERVICE_KEY) return res.status(200).json({ configured: false, text: {}, images: {} });
+    if (!SERVICE_KEY) return res.status(200).json({ configured: false, text: {}, images: {}, collections: {} });
     try {
-      const { text, images } = await readContent();
+      const { text, images, collections } = await readContent();
       // Edits must surface immediately across browsers/devices — no caching.
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).json({ configured: true, text, images });
+      return res.status(200).json({ configured: true, text, images, collections });
     } catch (err) {
       console.error('content GET error:', err);
       return res.status(500).json({ error: 'read_failed', message: String(err.message || err) });
@@ -126,13 +155,18 @@ export default async function handler(req, res) {
   if (!SERVICE_KEY) return res.status(503).json({ error: 'not_configured' });
 
   try {
-    const text = cleanText(body.text);
-    const images = cleanImages(body.images);
+    // Only overwrite fields the caller actually sent; absent fields are kept as
+    // they were (so a partial save can never wipe the others).
+    const has = (k) => Object.prototype.hasOwnProperty.call(body, k);
+    const prev = await readContent();
+    const text = has('text') ? cleanText(body.text) : prev.text;
+    const images = has('images') ? cleanImages(body.images) : prev.images;
+    const collections = has('collections') ? cleanCollections(body.collections) : prev.collections;
     await sb(`web_site_content?id=eq.${ROW_ID}`, {
       method: 'PATCH',
-      body: { text, images, updated_at: new Date().toISOString() },
+      body: { text, images, collections, updated_at: new Date().toISOString() },
     });
-    return res.status(200).json({ ok: true, text, images });
+    return res.status(200).json({ ok: true, text, images, collections });
   } catch (err) {
     console.error('content POST error:', err);
     return res.status(500).json({ error: 'save_failed', message: String(err.message || err) });

@@ -17,11 +17,18 @@
    simply editing a value back to its original (the key drops out of the store).
    ============================================================ */
 
+import { DEFAULT_CLASS_CARDS, CLASS_ICONS, DEFAULT_CLASS_ICON, esc } from './classcards.js';
+
 const pin = () => { try { return sessionStorage.getItem('fp_admin_pin') || ''; } catch { return ''; } };
 const framed = window.parent && window.parent !== window;
 
 let dirty = false;
 let toolbar, statusEl, saveBtn, statusTimer;
+
+// Class tiles are an add/remove collection (each with an optional photo).
+let editCards = null;            // working copy shown in the editor
+let cardsOverrideExists = false; // a saved override already exists in the store
+let cardGrid = null;             // #classes-grid
 
 // Read an element's text as plain text: text nodes verbatim, <br> → newline,
 // nested inline tags (e.g. <strong>) flattened, decorative <svg> icons skipped.
@@ -85,6 +92,12 @@ export function initEdit() {
         const k = el.getAttribute('data-edit-img');
         if (im[k]) { el.removeAttribute('srcset'); el.src = im[k]; markChanged(el); }
       });
+      const saved = d.collections && d.collections.classCards;
+      if (Array.isArray(saved) && saved.length && cardGrid) {
+        editCards = cloneCards(saved);
+        cardsOverrideExists = true;
+        renderCards();
+      }
     })
     .catch(() => {});
 
@@ -111,6 +124,9 @@ export function initEdit() {
   // 4. Intercept clicks on editable elements: stop link/button actions so the
   //    owner can edit labels; open the file picker for images.
   document.addEventListener('click', onClick, true);
+
+  // 4b. Render the class tiles as an add/remove collection.
+  initCards();
 
   // 5. Allow the parent admin tab to drive Save/Discard, and tell it our state.
   window.addEventListener('message', onMsg);
@@ -162,9 +178,11 @@ function fileToDataURL(file) {
   });
 }
 
-async function uploadImage(imgEl, file) {
-  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { status('Use a JPG, PNG or WebP image.'); return; }
-  if (file.size > 6_000_000) { status('Image must be under 6MB.'); return; }
+// Upload a file to our Storage bucket; returns the public URL or null (and
+// surfaces the reason in the status pill).
+async function uploadToBucket(file) {
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) { status('Use a JPG, PNG or WebP image.'); return null; }
+  if (file.size > 6_000_000) { status('Image must be under 6MB.'); return null; }
   status('Uploading photo…', 0);
   try {
     const data = await fileToDataURL(file);
@@ -174,18 +192,130 @@ async function uploadImage(imgEl, file) {
       body: JSON.stringify({ contentType: file.type, data, folder: 'site-images' }),
     });
     const d = await res.json().catch(() => null);
-    if (res.ok && d && d.url) {
-      imgEl.removeAttribute('srcset');
-      imgEl.src = d.url;
-      markChanged(imgEl);
-      setDirty(true);
-      status('Photo updated — press Save to publish.', 5000);
-    } else {
-      status((d && d.message) || 'Upload failed. Try again.');
-    }
+    if (res.ok && d && d.url) return d.url;
+    status((d && d.message) || 'Upload failed. Try again.');
+    return null;
   } catch {
     status('Upload failed — network error.');
+    return null;
   }
+}
+
+async function uploadImage(imgEl, file) {
+  const url = await uploadToBucket(file);
+  if (!url) return;
+  imgEl.removeAttribute('srcset');
+  imgEl.src = url;
+  markChanged(imgEl);
+  setDirty(true);
+  status('Photo updated — press Save to publish.', 5000);
+}
+
+/* ---- class tiles collection (add / remove / photo) ---- */
+
+function cloneCards(arr) {
+  return arr.map((c) => ({
+    id: c.id || `c${Math.random().toString(36).slice(2, 9)}`,
+    icon: CLASS_ICONS[c.icon] ? c.icon : DEFAULT_CLASS_ICON,
+    name: c.name || '',
+    trainer: c.trainer || '',
+    desc: c.desc || '',
+    image: c.image || '',
+  }));
+}
+
+function cardsChanged() {
+  return JSON.stringify(editCards) !== JSON.stringify(cloneCards(DEFAULT_CLASS_CARDS));
+}
+
+function initCards() {
+  cardGrid = document.getElementById('classes-grid');
+  if (!cardGrid) return;
+  editCards = cloneCards(DEFAULT_CLASS_CARDS); // saved override (if any) replaces this once the fetch resolves
+  renderCards();
+  cardGrid.addEventListener('click', onCardGridClick);
+  cardGrid.addEventListener('input', onCardGridInput);
+  cardGrid.addEventListener('keydown', onCardGridKeydown);
+}
+
+function cardEditHTML(card, i) {
+  const icon = CLASS_ICONS[card.icon] || CLASS_ICONS[DEFAULT_CLASS_ICON];
+  const banner = card.image
+    ? `<div class="fp-card-banner" data-act="photo" data-i="${i}" title="Change photo"><img src="${esc(card.image)}" alt="" /><span class="fp-card-photo-tag">Change photo</span></div>`
+    : `<div class="fp-card-banner fp-card-banner-icon" data-act="photo" data-i="${i}" title="Add a photo">${icon}<span class="fp-card-photo-tag">Add photo</span></div>`;
+  return `<div class="class-card fp-card" data-i="${i}">
+    <button type="button" class="fp-card-remove" data-act="remove" data-i="${i}" title="Remove this class" aria-label="Remove this class">×</button>
+    ${banner}
+    <h3 class="fp-card-f" contenteditable="plaintext-only" data-i="${i}" data-field="name" data-ph="Class name">${esc(card.name)}</h3>
+    <div class="class-trainer fp-card-f" contenteditable="plaintext-only" data-i="${i}" data-field="trainer" data-ph="With …">${esc(card.trainer)}</div>
+    <p class="fp-card-f" contenteditable="plaintext-only" data-i="${i}" data-field="desc" data-ph="Describe this class…">${esc(card.desc)}</p>
+  </div>`;
+}
+
+function renderCards() {
+  if (!cardGrid || !editCards) return;
+  const cards = editCards.map((c, i) => cardEditHTML(c, i)).join('');
+  const add = '<button type="button" class="class-card fp-card-add" data-act="add" title="Add a class"><span class="fp-card-add-plus">+</span><span>Add class</span></button>';
+  cardGrid.innerHTML = cards + add;
+  cardGrid.querySelectorAll('.fp-card-f').forEach((el) => {
+    if (el.contentEditable !== 'plaintext-only') el.setAttribute('contenteditable', 'true');
+    el.setAttribute('spellcheck', 'false');
+  });
+}
+
+function onCardGridClick(e) {
+  const t = e.target.closest('[data-act]');
+  if (!t) return;
+  const act = t.dataset.act;
+  if (act === 'add') { e.preventDefault(); addCard(); }
+  else if (act === 'remove') { e.preventDefault(); removeCard(+t.dataset.i); }
+  else if (act === 'photo') { e.preventDefault(); openCardPhoto(+t.dataset.i); }
+}
+
+function onCardGridInput(e) {
+  const el = e.target.closest('.fp-card-f');
+  if (!el || !editCards) return;
+  const i = +el.dataset.i;
+  if (!editCards[i]) return;
+  editCards[i][el.dataset.field] = readText(el);
+  setDirty(true);
+}
+
+function onCardGridKeydown(e) {
+  const el = e.target.closest('.fp-card-f');
+  if (el && e.key === 'Enter') { e.preventDefault(); if (el.dataset.field !== 'desc') el.blur(); }
+}
+
+function addCard() {
+  editCards.push({ id: `c${Math.random().toString(36).slice(2, 9)}`, icon: DEFAULT_CLASS_ICON, name: 'New Class', trainer: '', desc: 'Describe this class.', image: '' });
+  renderCards();
+  setDirty(true);
+  status('Class added — give it a name, photo and description.', 4500);
+}
+
+function removeCard(i) {
+  if (!editCards[i]) return;
+  if (!window.confirm(`Remove the "${editCards[i].name || 'untitled'}" class tile?`)) return;
+  editCards.splice(i, 1);
+  renderCards();
+  setDirty(true);
+}
+
+function openCardPhoto(i) {
+  if (!editCards[i]) return;
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/jpeg,image/png,image/webp';
+  input.addEventListener('change', async () => {
+    if (!input.files || !input.files[0]) return;
+    const url = await uploadToBucket(input.files[0]);
+    if (!url || !editCards[i]) return;
+    editCards[i].image = url;
+    renderCards();
+    setDirty(true);
+    status('Photo added — press Save to publish.', 5000);
+  });
+  input.click();
 }
 
 /* ---- save / discard ---- */
@@ -201,7 +331,14 @@ function collect() {
     const cur = curImg(el);
     if (cur !== (el.dataset.editDefault || '')) images[el.getAttribute('data-edit-img')] = cur;
   });
-  return { text, images };
+  const out = { text, images };
+  // Send the class tiles only when they differ from the defaults or an override
+  // already exists (so an untouched site keeps falling back to the hardcoded
+  // tiles, and a saved collection never goes stale).
+  if (editCards && (cardsOverrideExists || cardsChanged())) {
+    out.collections = { classCards: editCards };
+  }
+  return out;
 }
 
 async function save() {
@@ -301,6 +438,24 @@ function injectStyles() {
   .fp-edit-save:not(:disabled):hover{background:#16a34a;}
   .fp-edit-save:disabled{opacity:.5;cursor:default;}
   @media (max-width:640px){.fp-edit-title{flex-basis:100%;}}
+
+  /* Class-tile collection editor */
+  html.fp-editing #classes-grid .fp-card{position:relative;}
+  html.fp-editing #classes-grid .fp-card-remove{position:absolute;top:8px;right:8px;z-index:4;width:26px;height:26px;border-radius:50%;border:0;background:rgba(220,38,38,.92);color:#fff;font-size:18px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.35);}
+  html.fp-editing #classes-grid .fp-card-remove:hover{background:#dc2626;transform:scale(1.08);}
+  html.fp-editing #classes-grid .fp-card-banner{position:relative;cursor:pointer;margin:calc(var(--space-lg) * -1) calc(var(--space-lg) * -1) var(--space-md);border-radius:var(--radius-lg) var(--radius-lg) 0 0;overflow:hidden;aspect-ratio:16/10;background:var(--color-accent-dim);display:flex;align-items:center;justify-content:center;outline:2px dashed rgba(37,99,235,.55);outline-offset:-2px;}
+  html.fp-editing #classes-grid .fp-card-banner img{width:100%;height:100%;object-fit:cover;display:block;}
+  html.fp-editing #classes-grid .fp-card-banner-icon svg{width:34px;height:34px;color:var(--color-accent);}
+  html.fp-editing #classes-grid .fp-card-banner:hover{outline-color:#2563eb;filter:brightness(.93);}
+  html.fp-editing #classes-grid .fp-card-photo-tag{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);background:rgba(15,23,42,.88);color:#fff;font:600 12px Inter,system-ui,sans-serif;padding:4px 10px;border-radius:999px;opacity:0;transition:opacity .12s;white-space:nowrap;pointer-events:none;}
+  html.fp-editing #classes-grid .fp-card-banner:hover .fp-card-photo-tag,html.fp-editing #classes-grid .fp-card-banner-icon .fp-card-photo-tag{opacity:1;}
+  html.fp-editing #classes-grid .fp-card-f{outline:1px dashed rgba(37,99,235,.45);outline-offset:2px;border-radius:3px;cursor:text;min-height:1em;}
+  html.fp-editing #classes-grid .fp-card-f:hover{outline-color:#2563eb;background:rgba(37,99,235,.06);}
+  html.fp-editing #classes-grid .fp-card-f:focus{outline:2px solid #2563eb;background:rgba(37,99,235,.09);}
+  html.fp-editing #classes-grid .fp-card-f:empty::before{content:attr(data-ph);opacity:.5;}
+  html.fp-editing #classes-grid .fp-card-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:170px;cursor:pointer;border:2px dashed var(--glass-border);background:transparent;color:var(--color-text-secondary);font:700 15px Inter,system-ui,sans-serif;transition:border-color .15s,color .15s,transform .15s;}
+  html.fp-editing #classes-grid .fp-card-add:hover{border-color:var(--color-accent);color:var(--color-accent);transform:translateY(-4px);}
+  html.fp-editing #classes-grid .fp-card-add-plus{font-size:32px;line-height:1;}
   `;
   const style = document.createElement('style');
   style.setAttribute('data-fp-edit-ui', '');

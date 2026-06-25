@@ -5,6 +5,7 @@
 // First-party, cookie-free analytics (self-contained; never tracks
 // the admin dashboard, bots or crawlers). See analytics-client.js.
 import './analytics-client.js';
+import { publicCardHTML } from './classcards.js';
 
 // ---------- Owner content overrides (WYSIWYG editor) ----------
 // The marketing copy + photos in index.html are the DEFAULTS. The admin's
@@ -44,6 +45,12 @@ function applyContentOverrides() {
             el.src = url;
           }
         });
+      }
+      // Owner-managed class tiles: re-render the grid from the saved collection.
+      const cards = data.collections && data.collections.classCards;
+      if (Array.isArray(cards) && cards.length) {
+        const grid = document.getElementById('classes-grid');
+        if (grid) grid.innerHTML = cards.map(publicCardHTML).join('');
       }
     })
     .catch(() => {});
