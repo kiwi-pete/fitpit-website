@@ -1358,7 +1358,7 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
           const img = url ? `<div class="tt-class-img"><img src="${esc(url)}" alt="${esc(e.name)}" loading="lazy" /></div>` : '';
           let reg = '';
           if (e.classId) {
-            const cap = e.capacity != null ? e.capacity : 10;
+            const cap = e.capacity != null ? e.capacity : 12;
             const spaces = Math.max(0, cap - (e.registered || 0));
             reg = `<div class="tt-class-reg" data-classid="${esc(e.classId)}">${
               spaces > 0

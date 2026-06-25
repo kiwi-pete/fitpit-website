@@ -85,7 +85,7 @@ export default async function handler(req, res) {
     const rows = await sb(`classes?id=eq.${classId}&select=id,max_capacity,name,date`);
     const cls = rows && rows[0];
     if (!cls) return res.status(404).json({ error: 'class_not_found' });
-    const cap = cls.max_capacity != null ? cls.max_capacity : 10;
+    const cap = cls.max_capacity != null ? cls.max_capacity : 12;
 
     const regs = await sb(`class_registrations?class_id=eq.${classId}&select=guest_name,status`);
     const current = (regs || []).filter(active);

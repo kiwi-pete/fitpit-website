@@ -133,9 +133,10 @@ function renderTemplates() {
     }
     const meta = el('div', 'ca-tpl-meta');
     const times = t.start_time ? `${fmtTime(t.start_time)}${t.end_time ? '–' + fmtTime(t.end_time) : ''}` : 'no default time';
+    const cap = t.max_capacity != null ? t.max_capacity : 12;
     meta.append(
       el('div', 'ca-tpl-name', esc(t.name)),
-      el('div', 'ca-tpl-sub', `${esc(times)}${t.instructor ? ' · ' + esc(t.instructor) : ''}`)
+      el('div', 'ca-tpl-sub', `${esc(times)}${t.instructor ? ' · ' + esc(t.instructor) : ''} · Max ${cap}`)
     );
     const actions = el('div', 'ca-tpl-actions');
     const edit = el('button', 'ca-link', 'Edit');
@@ -171,7 +172,7 @@ function buildTemplateForm() {
     <div class="ca-row">
       <div class="ca-field"><label>Default start</label><input type="time" name="start_time" value="${esc(editing?.start_time || '')}" /></div>
       <div class="ca-field"><label>Default end</label><input type="time" name="end_time" value="${esc(editing?.end_time || '')}" /></div>
-      <div class="ca-field ca-field-cap"><label>Capacity</label><input type="number" name="max_capacity" min="0" max="999" value="${editing?.max_capacity ?? 20}" /></div>
+      <div class="ca-field ca-field-cap"><label>Max</label><input type="number" name="max_capacity" min="0" max="999" value="${editing?.max_capacity ?? 12}" /></div>
     </div>
     <div class="ca-field"><label>Colour</label><div class="ca-swatches"></div></div>
     <div class="ca-form-actions"></div>

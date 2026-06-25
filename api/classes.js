@@ -87,7 +87,7 @@ function cleanTemplate(t) {
     image: str(t.image, 600),
     start_time: reqTime(t.start_time),
     end_time: reqTime(t.end_time),
-    max_capacity: Number.isFinite(+t.max_capacity) ? Math.max(0, Math.min(999, +t.max_capacity)) : 10,
+    max_capacity: Number.isFinite(+t.max_capacity) ? Math.max(0, Math.min(999, +t.max_capacity)) : 12,
   };
 }
 
@@ -118,7 +118,7 @@ async function enrichSchedule(schedule) {
   return schedule.map((e) => {
     const row = byKey[`${e.recurrence_group_id}|${e.date}`];
     if (!row) return { ...e };
-    return { ...e, classId: row.id, capacity: row.max_capacity != null ? row.max_capacity : 10, registered: counts[row.id] || 0 };
+    return { ...e, classId: row.id, capacity: row.max_capacity != null ? row.max_capacity : 12, registered: counts[row.id] || 0 };
   });
 }
 
@@ -190,7 +190,7 @@ async function materialise(entries, templates, retiredGroupIds) {
         date: e.date,
         start_time: wantStart,
         end_time: wantEnd,
-        max_capacity: tmpl.max_capacity != null ? tmpl.max_capacity : 10,
+        max_capacity: tmpl.max_capacity != null ? tmpl.max_capacity : 12,
         recurrence_group_id: e.recurrence_group_id,
       });
     } else {
