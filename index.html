@@ -353,6 +353,12 @@
         </div>
       </div>
 
+      <!-- Live weekly timetable (populated from /api/classes; hidden until loaded) -->
+      <div id="class-schedule" class="class-schedule reveal" hidden style="margin-top: var(--space-2xl);">
+        <h3 class="class-schedule-title">This Week's <span class="accent-text">Timetable</span></h3>
+        <div id="class-schedule-grid" class="class-schedule-grid"></div>
+      </div>
+
       <!-- Class info note -->
       <div class="classes-info reveal" style="margin-top: var(--space-xl);">
         <div class="classes-info-inner">
@@ -445,10 +451,13 @@
           </button>
           <div class="accordion-panel">
             <ul class="accordion-panel-content">
+              <li>Air-Conditioned Training Area</li>
+              <li>Complimentary Gym Towels</li>
+              <li>On-Site Restaurant</li>
+              <li>Padel Courts</li>
               <li>Changing Rooms</li>
               <li>Restrooms</li>
               <li>Water Fountain</li>
-              <li>Fan-Cooled Training Area</li>
               <li>Outdoor Training Space</li>
               <li>Free Parking</li>
               <li>Secure Entry</li>
