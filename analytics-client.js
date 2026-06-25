@@ -42,7 +42,6 @@
     { key: 'classes', id: 'classes', title: 'Classes' },
     { key: 'facility', id: 'facility', title: 'Facility' },
     { key: 'about', id: 'about', title: 'About' },
-    { key: 'shop', id: 'shop', title: 'Shop' },
     { key: 'clinic', id: 'clinic', title: 'Medical Clinic' },
     { key: 'contact', id: 'contact', title: 'Contact' },
   ];
