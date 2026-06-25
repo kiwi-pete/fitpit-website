@@ -1294,3 +1294,61 @@ if (document.readyState === 'complete') {
 const footerYear = document.getElementById('footer-year');
 if (footerYear) footerYear.textContent = new Date().getFullYear();
 
+// ---------- Live Weekly Class Timetable ----------
+// Pulls the owner-managed weekly schedule from /api/classes and renders a clean
+// Mon–Sun timetable in the Classes section. Stays hidden if nothing's scheduled
+// or the endpoint is unavailable, so the section degrades gracefully.
+(function initClassSchedule() {
+  const host = document.getElementById('class-schedule');
+  const grid = document.getElementById('class-schedule-grid');
+  if (!host || !grid) return;
+
+  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const esc = (s) =>
+    String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const safeColor = (c) => (/^#[0-9a-fA-F]{3,8}$/.test(c) ? c : 'var(--color-accent)');
+  const fmt = (t) => {
+    if (!t) return '';
+    const [h, m] = t.split(':').map(Number);
+    const ap = h < 12 ? 'AM' : 'PM';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
+  };
+
+  fetch('/api/classes')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (!data || !Array.isArray(data.schedule) || !data.schedule.length) return;
+      const tById = {};
+      (data.templates || []).forEach((t) => (tById[t.id] = t));
+
+      const byDay = {};
+      data.schedule.forEach((s) => {
+        const di = Number(s.weekday);
+        if (di < 0 || di > 6) return;
+        (byDay[di] = byDay[di] || []).push(s);
+      });
+
+      let html = '';
+      for (let di = 0; di < 7; di++) {
+        const slots = (byDay[di] || []).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        if (!slots.length) continue;
+        html += `<div class="schedule-day"><div class="schedule-day-name">${DAYS[di]}</div><div class="schedule-day-classes">`;
+        slots.forEach((s) => {
+          const t = tById[s.templateId] || {};
+          html += `<div class="schedule-class" style="--c:${safeColor(t.color)}">
+            <div class="schedule-class-time">${esc(fmt(s.start_time))}${s.end_time ? ' – ' + esc(fmt(s.end_time)) : ''}</div>
+            <div class="schedule-class-name">${esc(s.name)}</div>
+            ${t.instructor ? `<div class="schedule-class-trainer">${esc(t.instructor)}</div>` : ''}
+          </div>`;
+        });
+        html += `</div></div>`;
+      }
+      if (!html) return;
+      grid.innerHTML = html;
+      host.hidden = false;
+      host.classList.add('revealed'); // it was display:none when the reveal observer ran
+    })
+    .catch(() => {});
+})();
+
