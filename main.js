@@ -1358,10 +1358,11 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
 
 // ---------- Live Class Timetable ----------
 // Pulls the owner-managed dated schedule from /api/classes and renders the
-// NEXT 7 DAYS as a timetable in the Classes section — today on the far left,
-// each day labelled with its real date, classes showing their image when set.
-// Stays hidden if nothing's scheduled or the endpoint is unavailable, so the
-// section degrades gracefully.
+// timetable in the Classes section — today on the far left, each day labelled
+// with its real date, classes showing their image when set. Shows the next 7
+// days, OR enough further days to reach at least the next 4 classes — whichever
+// spans more (so a quiet week still shows a useful list). Stays hidden if
+// nothing's scheduled or the endpoint is unavailable, so it degrades gracefully.
 (function initClassSchedule() {
   const host = document.getElementById('class-schedule');
   const grid = document.getElementById('class-schedule-grid');
@@ -1405,13 +1406,28 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
         (byDate[e.date] = byDate[e.date] || []).push(e);
       });
 
+      // Pick which days to show: every day in the next 7, plus any further days
+      // needed to reach at least the next 4 classes. ISO date strings sort
+      // chronologically, so a lexicographic sort/compare is correct here.
+      const lastIn7 = addDays(todayIso, 6);
+      const upcomingDates = Object.keys(byDate).filter((d) => d >= todayIso).sort();
+      const chosenDates = [];
+      let shownCount = 0;
+      for (const iso of upcomingDates) {
+        if (iso <= lastIn7 || shownCount < 4) {
+          chosenDates.push(iso);
+          shownCount += byDate[iso].length;
+        } else {
+          break;
+        }
+      }
+
       let html = '';
-      for (let off = 0; off < 7; off++) {
-        const iso = addDays(todayIso, off);
+      for (const iso of chosenDates) {
         const entries = (byDate[iso] || []).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
         if (!entries.length) continue;
         const dt = ymd(iso);
-        const dayName = off === 0 ? 'Today' : DOW[dt.getUTCDay()];
+        const dayName = iso === todayIso ? 'Today' : DOW[dt.getUTCDay()];
         const dayDate = `${dt.getUTCDate()}${ord(dt.getUTCDate())} ${MON[dt.getUTCMonth()]}`;
         html += `<div class="tt-day"><div class="tt-day-head"><span class="tt-day-name">${dayName}</span><span class="tt-day-date">${dayDate}</span></div><div class="tt-day-classes">`;
         entries.forEach((e) => {
