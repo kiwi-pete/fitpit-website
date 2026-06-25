@@ -17,6 +17,7 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ADMIN_PIN = process.env.CLASS_ADMIN_PIN || '2026';
 const BUCKET = 'gym-manager';
 const PREFIX = 'class-images';
+const ALLOWED_FOLDERS = new Set(['class-images', 'site-images']);
 const MAX_BYTES = 6_000_000;
 const EXT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
 
@@ -55,8 +56,9 @@ export default async function handler(req, res) {
   if (!bytes.length) return res.status(400).json({ error: 'empty' });
   if (bytes.length > MAX_BYTES) return res.status(413).json({ error: 'too_large', message: 'Image must be under 6MB.' });
 
+  const folder = ALLOWED_FOLDERS.has(String(body.folder)) ? String(body.folder) : PREFIX;
   const rand = Math.random().toString(36).slice(2, 8);
-  const path = `${PREFIX}/${Date.now()}-${rand}.${EXT[ct]}`;
+  const path = `${folder}/${Date.now()}-${rand}.${EXT[ct]}`;
 
   try {
     const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {

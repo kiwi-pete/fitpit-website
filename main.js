@@ -6,6 +6,61 @@
 // the admin dashboard, bots or crawlers). See analytics-client.js.
 import './analytics-client.js';
 
+// ---------- Owner content overrides (WYSIWYG editor) ----------
+// The marketing copy + photos in index.html are the DEFAULTS. The admin's
+// "Website Content" editor stores per-element overrides keyed by each
+// element's data-edit / data-edit-img attribute (see /api/content). Apply
+// them on load so owner edits show instantly with no rebuild/redeploy.
+// Text is written via textContent only (never innerHTML) so nothing in the
+// store can inject markup. Unedited keys have no override and never change.
+export function applyTextOverride(el, value) {
+  const str = String(value == null ? '' : value);
+  if (str.indexOf('\n') === -1) { el.textContent = str; return; }
+  el.textContent = '';
+  str.split('\n').forEach((line, i) => {
+    if (i) el.appendChild(document.createElement('br'));
+    el.appendChild(document.createTextNode(line));
+  });
+}
+
+function applyContentOverrides() {
+  fetch('/api/content', { cache: 'no-store' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((data) => {
+      if (!data) return;
+      const text = data.text || {};
+      const images = data.images || {};
+      if (Object.keys(text).length) {
+        document.querySelectorAll('[data-edit]').forEach((el) => {
+          const k = el.getAttribute('data-edit');
+          if (Object.prototype.hasOwnProperty.call(text, k)) applyTextOverride(el, text[k]);
+        });
+      }
+      if (Object.keys(images).length) {
+        document.querySelectorAll('[data-edit-img]').forEach((el) => {
+          const url = images[el.getAttribute('data-edit-img')];
+          if (typeof url === 'string' && url) {
+            el.removeAttribute('srcset');
+            el.src = url;
+          }
+        });
+      }
+    })
+    .catch(() => {});
+}
+
+// Are we inside the admin's "Website Content" editor? (?edit=1 + unlocked PIN)
+const FP_EDIT_MODE = (() => {
+  try {
+    return new URLSearchParams(location.search).get('edit') === '1' && !!sessionStorage.getItem('fp_admin_pin');
+  } catch { return false; }
+})();
+
+// In edit mode the editor (siteedit.js) is the sole applier — it snapshots the
+// hardcoded defaults first, then applies saved overrides — so don't double-apply
+// here. Public visitors always get the overrides applied.
+if (!FP_EDIT_MODE) applyContentOverrides();
+
 // ---------- Mobile Navigation ----------
 const menuToggle = document.getElementById('menu-toggle');
 const navLinks = document.getElementById('nav-links');
@@ -1435,4 +1490,14 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
       });
   }
 })();
+
+// ---------- Inline content editor (admin only) ----------
+// When the page is opened from the admin's "Website Content" tab — i.e. with
+// ?edit=1 and an admin PIN already unlocked in this browser session — lazily
+// load the editor controller. This is a separate Vite chunk that public
+// visitors never download. Toggling edit mode is client-side only; SAVING is
+// PIN-gated server-side (/api/content, /api/upload), so this exposes nothing.
+if (FP_EDIT_MODE) {
+  import('./siteedit.js').then((m) => m.initEdit && m.initEdit()).catch(() => {});
+}
 
