@@ -9,20 +9,25 @@ import './analytics-client.js';
 // ---------- Theme Switcher ----------
 const themeBtns = document.querySelectorAll('.theme-btn');
 
-// Apply saved theme
-const savedTheme = localStorage.getItem('fitpit-theme');
-if (savedTheme) {
+// Apply saved theme (default to Royal Purple; migrate any retired themes)
+const VALID_THEMES = ['royal', 'purple'];
+let savedTheme = localStorage.getItem('fitpit-theme');
+if (!VALID_THEMES.includes(savedTheme)) savedTheme = 'royal';
+
+if (savedTheme === 'royal') {
+  document.documentElement.removeAttribute('data-theme');
+} else {
   document.documentElement.setAttribute('data-theme', savedTheme);
-  themeBtns.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.theme === savedTheme);
-  });
 }
+themeBtns.forEach(btn => {
+  btn.classList.toggle('active', btn.dataset.theme === savedTheme);
+});
 
 themeBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     const theme = btn.dataset.theme;
 
-    if (theme === 'lime') {
+    if (theme === 'royal') {
       document.documentElement.removeAttribute('data-theme');
     } else {
       document.documentElement.setAttribute('data-theme', theme);
@@ -283,7 +288,9 @@ function initSignaturePad(canvasEl, clearBtnEl, errorMsgEl) {
     canvasEl.height = rect.height * dpr;
     ctx.scale(dpr, dpr);
     
-    ctx.strokeStyle = '#aaff00'; // Lime color signature
+    // Use the active theme's accent colour for the signature stroke
+    ctx.strokeStyle = getComputedStyle(document.documentElement)
+      .getPropertyValue('--color-accent').trim() || '#7B3FB0';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
