@@ -1294,19 +1294,23 @@ if (document.readyState === 'complete') {
 const footerYear = document.getElementById('footer-year');
 if (footerYear) footerYear.textContent = new Date().getFullYear();
 
-// ---------- Live Weekly Class Timetable ----------
-// Pulls the owner-managed weekly schedule from /api/classes and renders a clean
-// Mon–Sun timetable in the Classes section. Stays hidden if nothing's scheduled
-// or the endpoint is unavailable, so the section degrades gracefully.
+// ---------- Live Class Timetable ----------
+// Pulls the owner-managed dated schedule from /api/classes and renders the
+// NEXT 7 DAYS as a timetable in the Classes section — today on the far left,
+// each day labelled with its real date, classes showing their image when set.
+// Stays hidden if nothing's scheduled or the endpoint is unavailable, so the
+// section degrades gracefully.
 (function initClassSchedule() {
   const host = document.getElementById('class-schedule');
   const grid = document.getElementById('class-schedule-grid');
   if (!host || !grid) return;
 
-  const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const DOW = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const esc = (s) =>
     String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const safeColor = (c) => (/^#[0-9a-fA-F]{3,8}$/.test(c) ? c : 'var(--color-accent)');
+  const safeUrl = (u) => (/^https?:\/\//.test(u) ? u : '');
   const fmt = (t) => {
     if (!t) return '';
     const [h, m] = t.split(':').map(Number);
@@ -1314,6 +1318,17 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
     const h12 = h % 12 === 0 ? 12 : h % 12;
     return `${h12}:${String(m).padStart(2, '0')} ${ap}`;
   };
+  const ord = (n) => (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+
+  // "today" in gym-local time (East Africa), and the next 7 ISO dates.
+  let todayIso;
+  try {
+    todayIso = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Nairobi' }).format(new Date());
+  } catch {
+    todayIso = new Date().toISOString().slice(0, 10);
+  }
+  const ymd = (iso) => { const [y, m, d] = iso.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)); };
+  const addDays = (iso, n) => { const dt = ymd(iso); dt.setUTCDate(dt.getUTCDate() + n); return dt.toISOString().slice(0, 10); };
 
   fetch('/api/classes')
     .then((r) => (r.ok ? r.json() : null))
@@ -1322,24 +1337,32 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
       const tById = {};
       (data.templates || []).forEach((t) => (tById[t.id] = t));
 
-      const byDay = {};
-      data.schedule.forEach((s) => {
-        const di = Number(s.weekday);
-        if (di < 0 || di > 6) return;
-        (byDay[di] = byDay[di] || []).push(s);
+      const byDate = {};
+      data.schedule.forEach((e) => {
+        if (!e || typeof e.date !== 'string') return;
+        (byDate[e.date] = byDate[e.date] || []).push(e);
       });
 
       let html = '';
-      for (let di = 0; di < 7; di++) {
-        const slots = (byDay[di] || []).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
-        if (!slots.length) continue;
-        html += `<div class="schedule-day"><div class="schedule-day-name">${DAYS[di]}</div><div class="schedule-day-classes">`;
-        slots.forEach((s) => {
-          const t = tById[s.templateId] || {};
-          html += `<div class="schedule-class" style="--c:${safeColor(t.color)}">
-            <div class="schedule-class-time">${esc(fmt(s.start_time))}${s.end_time ? ' – ' + esc(fmt(s.end_time)) : ''}</div>
-            <div class="schedule-class-name">${esc(s.name)}</div>
-            ${t.instructor ? `<div class="schedule-class-trainer">${esc(t.instructor)}</div>` : ''}
+      for (let off = 0; off < 7; off++) {
+        const iso = addDays(todayIso, off);
+        const entries = (byDate[iso] || []).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        if (!entries.length) continue;
+        const dt = ymd(iso);
+        const dayName = off === 0 ? 'Today' : DOW[dt.getUTCDay()];
+        const dayDate = `${dt.getUTCDate()}${ord(dt.getUTCDate())} ${MON[dt.getUTCMonth()]}`;
+        html += `<div class="tt-day"><div class="tt-day-head"><span class="tt-day-name">${dayName}</span><span class="tt-day-date">${dayDate}</span></div><div class="tt-day-classes">`;
+        entries.forEach((e) => {
+          const t = tById[e.templateId] || {};
+          const url = safeUrl(t.image || '');
+          const img = url ? `<div class="tt-class-img"><img src="${esc(url)}" alt="${esc(e.name)}" loading="lazy" /></div>` : '';
+          html += `<div class="tt-class${url ? ' has-img' : ''}" style="--c:${safeColor(t.color)}">
+            ${img}
+            <div class="tt-class-body">
+              <div class="tt-class-time">${esc(fmt(e.start_time))}${e.end_time ? ' – ' + esc(fmt(e.end_time)) : ''}</div>
+              <div class="tt-class-name">${esc(e.name)}</div>
+              ${t.instructor ? `<div class="tt-class-trainer">${esc(t.instructor)}</div>` : ''}
+            </div>
           </div>`;
         });
         html += `</div></div>`;
