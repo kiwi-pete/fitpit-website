@@ -224,8 +224,9 @@ export default async function handler(req, res) {
     try {
       const { templates, schedule } = await readSettings();
       const enriched = await enrichSchedule(schedule);
-      // Short cache so "spaces left" stays close to real-time.
-      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=60');
+      // No caching: "spaces left" must reflect registrations in real time across
+      // browsers/devices.
+      res.setHeader('Cache-Control', 'no-store');
       return res.status(200).json({ configured: true, templates, schedule: enriched });
     } catch (err) {
       console.error('classes GET error:', err);
@@ -283,7 +284,15 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, templates, schedule, materialised: null, warning: String(err.message || err) });
     }
 
-    return res.status(200).json({ ok: true, templates, schedule, materialised });
+    // Return the enriched schedule (class ids + live counts) so the admin shows
+    // registrations immediately without a second round-trip.
+    let enriched = schedule;
+    try {
+      enriched = await enrichSchedule(schedule);
+    } catch (e) {
+      /* counts are optional; the save itself already succeeded */
+    }
+    return res.status(200).json({ ok: true, templates, schedule: enriched, materialised });
   } catch (err) {
     console.error('classes POST error:', err);
     return res.status(500).json({ error: 'save_failed', message: String(err.message || err) });

@@ -57,7 +57,7 @@ const fmtTime = (t) => {
   return `${h12}:${String(m).padStart(2, '0')}${ap}`;
 };
 
-const state = { pin: '2026', templates: [], schedule: [], dirty: false, editingId: null };
+const state = { pin: '2026', templates: [], schedule: [], dirty: false, editingId: null, loaded: false };
 
 let elStatus, elTemplates, elGrid, elSave;
 
@@ -84,7 +84,8 @@ function status(msg, kind) {
 async function loadData() {
   status('Loading…', 'info');
   try {
-    const res = await fetch('/api/classes?t=' + Date.now()); // bypass edge cache for fresh counts
+    const res = await fetch('/api/classes?t=' + Date.now()); // always fresh
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.configured === false) {
       status('Schedule storage is not configured yet. You can build the timetable below, but saving needs storage configured.', 'info');
@@ -93,10 +94,13 @@ async function loadData() {
     }
     state.templates = Array.isArray(data.templates) ? data.templates : [];
     state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
+    state.loaded = true;
   } catch (err) {
-    status('Could not load the schedule: ' + err.message, '');
-    state.templates = [];
-    state.schedule = [];
+    // Crucial: do NOT replace your saved data with an empty list on a failed
+    // load, and block saving until a good reload — otherwise a hiccup could
+    // overwrite the database.
+    state.loaded = false;
+    status('Could not load your saved schedule (' + err.message + '). Please reload the page before editing — saving now is disabled to protect your data.', '');
   }
   state.dirty = false;
   renderAll();
@@ -110,8 +114,8 @@ function markDirty() {
 function renderAll() {
   renderTemplates();
   renderWeeks();
-  elSave.disabled = !state.dirty;
-  elSave.textContent = state.dirty ? 'Save changes' : 'Saved';
+  elSave.disabled = !state.dirty || !state.loaded;
+  elSave.textContent = !state.loaded ? 'Reload to edit' : state.dirty ? 'Save changes' : 'Saved';
 }
 
 /* ----------------------------- class types ------------------------------ */
@@ -522,7 +526,7 @@ function clearWeek(wkMon) {
 /* -------------------------------- save ---------------------------------- */
 
 async function save() {
-  if (!state.dirty) return;
+  if (!state.dirty || !state.loaded) return; // never save from an unloaded state
   elSave.disabled = true;
   elSave.textContent = 'Saving…';
   status('');
@@ -534,9 +538,12 @@ async function save() {
     });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.message || data.error || `Save failed (${res.status})`);
+    // POST returns the enriched schedule (class ids + live counts).
+    state.templates = data.templates || state.templates;
+    state.schedule = data.schedule || state.schedule;
+    state.dirty = false;
+    renderAll();
     const m = data.materialised;
-    // Re-fetch so each class picks up its id + live registration counts.
-    await loadData();
     if (data.warning) status('Timetable saved. (Ops-app sync skipped: ' + data.warning + ')', 'info');
     else if (m) status(`Saved. The website timetable is live${m.inserted || m.deleted ? ` · ${m.inserted} added, ${m.deleted} removed in Gym Manager` : ''}.`, 'success');
     else status('Saved. The website timetable is live.', 'success');
