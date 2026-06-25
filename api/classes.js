@@ -87,8 +87,39 @@ function cleanTemplate(t) {
     image: str(t.image, 600),
     start_time: reqTime(t.start_time),
     end_time: reqTime(t.end_time),
-    max_capacity: Number.isFinite(+t.max_capacity) ? Math.max(0, Math.min(999, +t.max_capacity)) : 20,
+    max_capacity: Number.isFinite(+t.max_capacity) ? Math.max(0, Math.min(999, +t.max_capacity)) : 10,
   };
+}
+
+// Attach the materialised classes.id + capacity + registration count to each
+// future entry, so the site can show "spaces left" and register against the
+// right class. Registrant NAMES are never returned here — only counts.
+async function enrichSchedule(schedule) {
+  if (!schedule.length) return schedule;
+  const today = new Date().toISOString().slice(0, 10);
+  const gids = [...new Set(schedule.map((e) => e.recurrence_group_id).filter((g) => uuidRe.test(g)))];
+  if (!gids.length) return schedule.map((e) => ({ ...e }));
+
+  const rows = await sb(
+    `classes?recurrence_group_id=in.${inList(gids)}&date=gte.${today}&select=id,recurrence_group_id,date,max_capacity`
+  );
+  const byKey = {};
+  rows.forEach((r) => (byKey[`${r.recurrence_group_id}|${r.date}`] = r));
+
+  const counts = {};
+  const classIds = rows.map((r) => r.id);
+  if (classIds.length) {
+    const regs = await sb(`class_registrations?class_id=in.${inList(classIds)}&select=class_id,status`);
+    (regs || []).forEach((r) => {
+      if ((r.status || 'registered') !== 'cancelled') counts[r.class_id] = (counts[r.class_id] || 0) + 1;
+    });
+  }
+
+  return schedule.map((e) => {
+    const row = byKey[`${e.recurrence_group_id}|${e.date}`];
+    if (!row) return { ...e };
+    return { ...e, classId: row.id, capacity: row.max_capacity != null ? row.max_capacity : 10, registered: counts[row.id] || 0 };
+  });
 }
 
 // A dated timetable entry.
@@ -159,7 +190,7 @@ async function materialise(entries, templates, retiredGroupIds) {
         date: e.date,
         start_time: wantStart,
         end_time: wantEnd,
-        max_capacity: tmpl.max_capacity != null ? tmpl.max_capacity : 20,
+        max_capacity: tmpl.max_capacity != null ? tmpl.max_capacity : 10,
         recurrence_group_id: e.recurrence_group_id,
       });
     } else {
@@ -192,8 +223,10 @@ export default async function handler(req, res) {
     if (!SERVICE_KEY) return res.status(200).json({ configured: false, templates: [], schedule: [] });
     try {
       const { templates, schedule } = await readSettings();
-      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=120, stale-while-revalidate=600');
-      return res.status(200).json({ configured: true, templates, schedule });
+      const enriched = await enrichSchedule(schedule);
+      // Short cache so "spaces left" stays close to real-time.
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=15, stale-while-revalidate=60');
+      return res.status(200).json({ configured: true, templates, schedule: enriched });
     } catch (err) {
       console.error('classes GET error:', err);
       return res.status(500).json({ error: 'read_failed', message: String(err.message || err) });

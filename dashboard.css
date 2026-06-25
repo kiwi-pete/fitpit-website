@@ -495,6 +495,15 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 .ca-slot-time { color: var(--ink-soft); font-size: 0.74rem; margin-top: 2px; }
 .ca-slot-x { position: absolute; top: 3px; right: 4px; border: 0; background: none; color: #b3bec6; font-size: 1rem; line-height: 1; cursor: pointer; padding: 0; }
 .ca-slot-x:hover { color: #c0392b; }
+.ca-slot-reg { margin-top: 5px; border: 1px solid var(--line); background: #fff; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: var(--ink-soft); padding: 2px 9px; cursor: pointer; }
+.ca-slot-reg.has { background: var(--teal-soft); color: var(--teal-dark); border-color: #b9e9e6; }
+.ca-slot-reg:hover { border-color: var(--teal); }
+.ca-slot-hint { margin-top: 5px; font-size: 0.68rem; color: #aab6bf; font-style: italic; }
+.ca-names { margin-top: 6px; padding: 8px 10px; background: #f4f6f9; border-radius: 8px; font-size: 0.78rem; }
+.ca-names-head { font-weight: 800; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 4px; }
+.ca-name { padding: 3px 0; border-top: 1px solid #e7ecf1; }
+.ca-name:first-of-type { border-top: 0; }
+.ca-names em { color: var(--ink-soft); }
 
 .ca-add { margin-top: 8px; }
 .ca-add-btn { width: 100%; border: 1px dashed var(--line); background: none; color: var(--teal-dark); font-weight: 700; font-size: 0.76rem; padding: 6px; border-radius: 8px; cursor: pointer; }

@@ -1356,12 +1356,23 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
           const t = tById[e.templateId] || {};
           const url = safeUrl(t.image || '');
           const img = url ? `<div class="tt-class-img"><img src="${esc(url)}" alt="${esc(e.name)}" loading="lazy" /></div>` : '';
+          let reg = '';
+          if (e.classId) {
+            const cap = e.capacity != null ? e.capacity : 10;
+            const spaces = Math.max(0, cap - (e.registered || 0));
+            reg = `<div class="tt-class-reg" data-classid="${esc(e.classId)}">${
+              spaces > 0
+                ? `<span class="tt-spaces">${spaces} space${spaces === 1 ? '' : 's'} left</span><button type="button" class="tt-register-btn">Register</button>`
+                : `<span class="tt-spaces full">Class full</span>`
+            }</div>`;
+          }
           html += `<div class="tt-class${url ? ' has-img' : ''}" style="--c:${safeColor(t.color)}">
             ${img}
             <div class="tt-class-body">
               <div class="tt-class-time">${esc(fmt(e.start_time))}${e.end_time ? ' – ' + esc(fmt(e.end_time)) : ''}</div>
               <div class="tt-class-name">${esc(e.name)}</div>
               ${t.instructor ? `<div class="tt-class-trainer">${esc(t.instructor)}</div>` : ''}
+              ${reg}
             </div>
           </div>`;
         });
@@ -1371,7 +1382,57 @@ if (footerYear) footerYear.textContent = new Date().getFullYear();
       grid.innerHTML = html;
       host.hidden = false;
       host.classList.add('revealed'); // it was display:none when the reveal observer ran
+      grid.addEventListener('click', onRegClick);
     })
     .catch(() => {});
+
+  // Inline register flow: Register → name input → Confirm → POST /api/register.
+  function onRegClick(ev) {
+    const reg = ev.target.closest('.tt-class-reg');
+    if (!reg) return;
+    if (ev.target.closest('.tt-register-btn')) {
+      reg.dataset.orig = reg.innerHTML;
+      reg.innerHTML =
+        '<input type="text" class="tt-reg-input" placeholder="Your name" maxlength="60" aria-label="Your name" />' +
+        '<div class="tt-reg-actions"><button type="button" class="tt-reg-confirm">Confirm</button>' +
+        '<button type="button" class="tt-reg-cancel">Cancel</button></div>';
+      const input = reg.querySelector('.tt-reg-input');
+      input.focus();
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitReg(reg); });
+    } else if (ev.target.closest('.tt-reg-cancel')) {
+      if (reg.dataset.orig != null) reg.innerHTML = reg.dataset.orig;
+    } else if (ev.target.closest('.tt-reg-confirm')) {
+      submitReg(reg);
+    }
+  }
+
+  function submitReg(reg) {
+    const input = reg.querySelector('.tt-reg-input');
+    if (!input) return;
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    const classId = reg.dataset.classid;
+    reg.querySelectorAll('button, input').forEach((n) => (n.disabled = true));
+    const confirmBtn = reg.querySelector('.tt-reg-confirm');
+    if (confirmBtn) confirmBtn.textContent = '…';
+    fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ classId, name }),
+    })
+      .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+      .then(({ ok, d }) => {
+        if (ok && d.ok) {
+          const left = typeof d.spaces === 'number' ? ` · ${d.spaces} left` : '';
+          reg.innerHTML = `<span class="tt-reg-done">✓ ${d.already ? "You're already on the list" : "You're booked in"}</span><span class="tt-spaces">${esc(name)}${left}</span>`;
+        } else {
+          const msg = (d && d.message) || 'Could not register — please try again.';
+          reg.innerHTML = `<span class="tt-spaces full">${esc(msg)}</span>` + (reg.dataset.orig != null ? '<button type="button" class="tt-register-btn">Try again</button>' : '');
+        }
+      })
+      .catch(() => {
+        reg.innerHTML = '<span class="tt-spaces full">Network error — please try again.</span><button type="button" class="tt-register-btn">Try again</button>';
+      });
+  }
 })();
 

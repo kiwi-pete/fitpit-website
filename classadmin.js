@@ -84,7 +84,7 @@ function status(msg, kind) {
 async function loadData() {
   status('Loading…', 'info');
   try {
-    const res = await fetch('/api/classes');
+    const res = await fetch('/api/classes?t=' + Date.now()); // bypass edge cache for fresh counts
     const data = await res.json();
     if (data.configured === false) {
       status('Schedule storage is not configured yet. You can build the timetable below, but saving needs storage configured.', 'info');
@@ -377,6 +377,15 @@ function buildWeek(wkMon, today, isCurrent) {
         el('div', 'ca-slot-name', esc(e.name)),
         el('div', 'ca-slot-time', `${fmtTime(e.start_time)}${e.end_time ? '–' + fmtTime(e.end_time) : ''}`)
       );
+      if (e.classId) {
+        const cap = e.capacity != null ? e.capacity : 10;
+        const regBtn = el('button', 'ca-slot-reg' + ((e.registered || 0) > 0 ? ' has' : ''), `&#128100; ${e.registered || 0}/${cap}`);
+        regBtn.title = 'View who registered';
+        regBtn.onclick = () => toggleNames(chip, e.classId);
+        chip.append(regBtn);
+      } else if (state.dirty) {
+        chip.append(el('div', 'ca-slot-hint', 'Save to enable sign-ups'));
+      }
       const x = el('button', 'ca-slot-x', '×');
       x.title = 'Remove';
       x.onclick = () => {
@@ -391,6 +400,29 @@ function buildWeek(wkMon, today, isCurrent) {
   }
   block.append(grid);
   return block;
+}
+
+async function toggleNames(chip, classId) {
+  const existing = chip.querySelector('.ca-names');
+  if (existing) {
+    existing.remove();
+    return;
+  }
+  const panel = el('div', 'ca-names', 'Loading…');
+  chip.append(panel);
+  try {
+    const res = await fetch(`/api/register?classId=${encodeURIComponent(classId)}`, {
+      headers: { 'x-admin-pin': state.pin },
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || res.status);
+    panel.innerHTML =
+      d.names && d.names.length
+        ? `<div class="ca-names-head">${d.names.length} registered</div>` + d.names.map((n) => `<div class="ca-name">${esc(n)}</div>`).join('')
+        : '<em>No sign-ups yet</em>';
+  } catch (err) {
+    panel.textContent = 'Could not load names.';
+  }
 }
 
 function buildAddSlot(dayIso) {
@@ -501,11 +533,9 @@ async function save() {
     });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.message || data.error || `Save failed (${res.status})`);
-    state.templates = data.templates || state.templates;
-    state.schedule = data.schedule || state.schedule;
-    state.dirty = false;
-    renderAll();
     const m = data.materialised;
+    // Re-fetch so each class picks up its id + live registration counts.
+    await loadData();
     if (data.warning) status('Timetable saved. (Ops-app sync skipped: ' + data.warning + ')', 'info');
     else if (m) status(`Saved. The website timetable is live${m.inserted || m.deleted ? ` · ${m.inserted} added, ${m.deleted} removed in Gym Manager` : ''}.`, 'success');
     else status('Saved. The website timetable is live.', 'success');
