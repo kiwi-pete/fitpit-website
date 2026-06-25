@@ -395,7 +395,7 @@ function buildWeek(wkMon, today, isCurrent) {
 
 function buildAddSlot(dayIso) {
   const wrap = el('div', 'ca-add');
-  const btn = el('button', 'ca-add-btn', '+ Add class');
+  const btn = el('button', 'ca-add-btn', '+ Add');
   const panel = el('div', 'ca-add-panel');
   panel.hidden = true;
   btn.onclick = () => {
