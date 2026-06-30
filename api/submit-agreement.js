@@ -5,9 +5,9 @@ import { syncMemberToGymManager } from './_gym-manager.js';
 function gymManagerSummary(gm) {
   switch (gm && gm.status) {
     case 'created':
-      return `Created as an UNPAID member (id ${gm.memberId}). The signed agreement PDF is attached to their account. Mark them paid in Gym Manager once payment is received.`;
+      return `Created as an INACTIVE, UNPAID member (id ${gm.memberId}). The signed agreement PDF is attached to their account. Use "Renew / Add Payment" in Gym Manager to activate them once payment is received.`;
     case 'created_without_agreement':
-      return `Created as an UNPAID member (id ${gm.memberId}), but the agreement PDF could not be attached automatically — please attach it manually from this email.`;
+      return `Created as an INACTIVE, UNPAID member (id ${gm.memberId}), but the agreement PDF could not be attached automatically — please attach it manually from this email.`;
     case 'duplicate':
       return `An existing member already matches by ${gm.matchedOn} (id ${gm.memberId}) — no duplicate was created.`;
     case 'skipped':

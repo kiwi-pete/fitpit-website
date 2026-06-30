@@ -112,18 +112,6 @@ export async function findExistingMember(email, phone) {
   return null;
 }
 
-// ---- settings tier snapshot ------------------------------------------------
-
-async function getSettingsTier(tierId) {
-  try {
-    const rows = await sb('settings?id=eq.global&select=subscriptionTiers&limit=1');
-    const tiers = (rows && rows[0] && rows[0].subscriptionTiers) || [];
-    return tiers.find((t) => String(t.id) === String(tierId)) || null;
-  } catch (_) {
-    return null;
-  }
-}
-
 // ---- agreement PDF ---------------------------------------------------------
 
 function dataUrlToBuffer(dataUrl) {
@@ -289,30 +277,22 @@ async function uploadAgreement(bytes, memberName) {
 
 // ---- member creation -------------------------------------------------------
 
-// Expiry = start + months, minus one day — matching the Gym Manager app's own
-// expiry computation (MembersView auto-compute).
-function computePeriod(startDate, months) {
-  const start = new Date(`${startDate}T00:00:00`);
-  const expiry = new Date(start);
-  expiry.setMonth(expiry.getMonth() + months);
-  expiry.setDate(expiry.getDate() - 1);
-  return { startISO: start.toISOString(), expiryISO: expiry.toISOString() };
-}
-
-async function createUnpaidMember({ member, tier, settingsTier, agreement }) {
+// Create the member as a PENDING, INACTIVE, UNPAID record — the gym admin
+// activates it (and records the payment) only once the money is received.
+//
+// Why no membership period / expiry:
+//   - In the ops app, a member's active status is DERIVED from expiryDate
+//     (expiryDate >= now → "active"), so we leave expiryDate null → "inactive".
+//   - The billing calendar/ledger renders any membershipHistory period (with
+//     its pricePaid) as a paid block — which looked like "$85 paid" even with
+//     no transaction. So we write NO period; the admin's "Renew / Add Payment"
+//     flow creates the period + transaction at payment time.
+//   - No transaction is created either way, so Financials stays untouched.
+// The selected term and requested start date are preserved (tier + comments)
+// so the admin knows what the member signed up for.
+async function createUnpaidMember({ member, tier, agreement }) {
   const id = randomUUID();
   const now = new Date().toISOString();
-  const { startISO, expiryISO } = computePeriod(member.startDate, tier.months);
-
-  // membershipHistory entry with NO transactionId — i.e. unpaid.
-  const currentPeriod = {
-    startDate: startISO,
-    endDate: expiryISO,
-    tierId: tier.tierId,
-    type: settingsTier?.type || 'subscription',
-    tierNameSnapshot: settingsTier?.name || member.term,
-    pricePaid: settingsTier?.price ?? 0,
-  };
 
   const payload = {
     id,
@@ -321,19 +301,19 @@ async function createUnpaidMember({ member, tier, settingsTier, agreement }) {
     phone: member.phone,
     gender: 'not-specified',
     tier: tier.tierId,
-    status: 'active',
+    status: 'inactive',
     joinDate: now,
-    startDate: startISO,
-    expiryDate: expiryISO,
-    nextBillingDate: expiryISO,
-    membershipHistory: [currentPeriod],
+    startDate: null,
+    expiryDate: null,
+    nextBillingDate: null,
+    membershipHistory: [],
     membershipAgreement: agreement || null,
-    comments: 'Self-registered via fitpitznz.com membership wizard (unpaid).',
+    comments: member.comment,
     inviteStatus: 'pending',
   };
 
   await sb('members', { method: 'POST', body: [payload] });
-  return { id, startISO, expiryISO };
+  return { id };
 }
 
 // ---- orchestrator ----------------------------------------------------------
@@ -362,7 +342,10 @@ export async function syncMemberToGymManager(fields, baseUrl) {
     ? fields.membership_start_date
     : new Date().toISOString().slice(0, 10);
 
-  const settingsTier = await getSettingsTier(tier.tierId);
+  const comment =
+    `Self-registered via fitpitznz.com membership wizard — UNPAID / pending. ` +
+    `Requested: ${fields.membership_term || 'membership'}, start ${startDate}. ` +
+    `Use "Renew / Add Payment" to activate once payment is received.`;
 
   // 2) Build + upload the signed agreement PDF (resilient — a failure here
   //    must not stop the member from being created).
@@ -387,14 +370,13 @@ export async function syncMemberToGymManager(fields, baseUrl) {
     console.error('Gym Manager agreement build/upload failed:', err);
   }
 
-  // 3) Create the member (unpaid — no transaction recorded).
-  const created = await createUnpaidMember({ member: { name, email, phone, startDate }, tier, settingsTier, agreement });
+  // 3) Create the member — pending, inactive, unpaid (no period, no transaction).
+  const created = await createUnpaidMember({ member: { name, email, phone, comment }, tier, agreement });
 
   return {
     status: agreement ? 'created' : 'created_without_agreement',
     memberId: created.id,
     tier: tier.tierId,
-    expiry: created.expiryISO,
     agreementUrl: agreement ? agreement.url : null,
   };
 }
