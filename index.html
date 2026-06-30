@@ -759,6 +759,8 @@
       </div>
 
       <div class="clinic-modal-body">
+        <p class="loyalty-intro" data-edit="modal.loyalty.intro">Train &amp; Save rewards members who stay on a continuous monthly membership — so it applies to recurring monthly members only. Keep paying each month without a break and your rate steps down automatically: after 6 unbroken months your monthly payment drops from USD 85 to USD 75, and from month 13 onwards it drops again to USD 65. The only break that won't reset your progress is the low-season pause described below.</p>
+
         <!-- Tier ladder -->
         <div class="loyalty-tier-list">
           <div class="loyalty-tier">
@@ -806,6 +808,57 @@
         <div class="pricing-modal-info-card" style="margin-top: var(--space-md);">
           <h4 data-edit="modal.loyalty.prepayTitle">Prepay &amp; Save More</h4>
           <p data-edit="modal.loyalty.prepayDesc">Members who pay 6-monthly or 12-monthly in advance receive the best discount rate.</p>
+        </div>
+
+        <!-- FAQ -->
+        <div class="loyalty-faq-section">
+          <h4 class="loyalty-faq-heading" data-edit="modal.loyalty.faqTitle">Frequently Asked Questions</h4>
+          <div class="loyalty-faq">
+            <details class="loyalty-faq-item">
+              <summary>
+                <span data-edit="modal.loyalty.faq0.q">Can I take a pause outside the April–June window?</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </summary>
+              <div class="loyalty-faq-answer">
+                <p data-edit="modal.loyalty.faq0.a">No. The pause was only introduced to acknowledge the low season, so it's the one exception. Any break in your monthly membership outside the April–June window resets your discount back to USD 85/month.</p>
+              </div>
+            </details>
+
+            <details class="loyalty-faq-item">
+              <summary>
+                <span data-edit="modal.loyalty.faq1.q">I've been a member for more than 6 months but my rate hasn't been discounted.</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </summary>
+              <div class="loyalty-faq-answer">
+                <p data-edit="modal.loyalty.faq1.a">Please contact us and we'll review your membership and adjust it as appropriate.</p>
+              </div>
+            </details>
+
+            <details class="loyalty-faq-item">
+              <summary>
+                <span data-edit="modal.loyalty.faq2.q">I pay 6-monthly or 12-monthly upfront. Does this replace paying in advance?</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </summary>
+              <div class="loyalty-faq-answer">
+                <p data-edit="modal.loyalty.faq2.a">No. Paying 6-monthly or 12-monthly upfront still earns a significant additional discount on top of this, and it remains the cheapest way to go. Here's how the effective monthly cost compares:</p>
+                <div class="loyalty-calc" aria-hidden="false">
+                  <div class="loyalty-calc-row">
+                    <span class="loyalty-calc-label">6-month upfront — USD 365 ÷ 6</span>
+                    <span class="loyalty-calc-value">≈ USD 60.83 / mo</span>
+                  </div>
+                  <div class="loyalty-calc-row best">
+                    <span class="loyalty-calc-label">12-month upfront — USD 605 ÷ 12</span>
+                    <span class="loyalty-calc-value">≈ USD 50.42 / mo</span>
+                  </div>
+                  <div class="loyalty-calc-row">
+                    <span class="loyalty-calc-label">Loyalty monthly — best tier (from month 13)</span>
+                    <span class="loyalty-calc-value">USD 65 / mo</span>
+                  </div>
+                </div>
+                <p class="loyalty-calc-note" data-edit="modal.loyalty.faq2.note">Even the deepest monthly loyalty rate (USD 65, reached only after a year) is higher than both prepay options — and the 12-month upfront works out around USD 15/month less, locked in from day one.</p>
+              </div>
+            </details>
+          </div>
         </div>
 
         <p class="loyalty-closing" data-edit="modal.loyalty.closing">Stay consistent, save more.</p>
