@@ -357,20 +357,40 @@ function initSignaturePad(canvasEl, clearBtnEl, errorMsgEl) {
   let isCanvasBlank = true;
   let isDrawing = false;
 
-  const resizeCanvas = () => {
-    const rect = canvasEl.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    canvasEl.width = rect.width * dpr;
-    canvasEl.height = rect.height * dpr;
-    ctx.scale(dpr, dpr);
-    
+  const applyStrokeStyle = () => {
     // Use the active theme's accent colour for the signature stroke
     ctx.strokeStyle = getComputedStyle(document.documentElement)
       .getPropertyValue('--color-accent').trim() || '#8B7BF7';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    // Clear canvas content and reset blank state on resize
+  };
+
+  const resizeCanvas = () => {
+    const rect = canvasEl.getBoundingClientRect();
+    // While the canvas (or a parent wizard step / tab panel) is hidden its rect
+    // is 0×0. Sizing the backing store to 0 makes every stroke render into
+    // nothing — which is exactly why drawing did nothing until the canvas was
+    // first shown. Skip until it's actually visible; resize() is re-invoked
+    // when the signature step opens.
+    if (rect.width === 0 || rect.height === 0) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+
+    // Assigning width/height clears the canvas, so only resize when the size
+    // actually changed — this keeps any existing drawing when the user steps
+    // away from and back to the signature step.
+    if (canvasEl.width === targetW && canvasEl.height === targetH) {
+      applyStrokeStyle();
+      return;
+    }
+
+    canvasEl.width = targetW;
+    canvasEl.height = targetH;
+    ctx.scale(dpr, dpr);
+    applyStrokeStyle();
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
     isCanvasBlank = true;
   };
@@ -685,6 +705,12 @@ if (agreementModal) {
     }
     if (btnNext) {
       btnNext.textContent = step === totalSteps ? 'Submit Agreement' : 'Next';
+    }
+
+    // The signature canvas (last input step) has no layout size until its step
+    // is shown, so size its backing store now or drawn strokes won't render.
+    if (step === totalSteps && wizardSigPad) {
+      requestAnimationFrame(() => wizardSigPad.resize());
     }
   };
 
