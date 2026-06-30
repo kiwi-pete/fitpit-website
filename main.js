@@ -306,14 +306,27 @@ const openLoyaltyBtn = document.getElementById('open-loyalty-modal');
 const closeLoyaltyBtn = document.getElementById('close-loyalty-modal');
 
 if (loyaltyModal && openLoyaltyBtn && closeLoyaltyBtn) {
+  // Lock background scrolling. In standards mode the viewport scroll is driven
+  // by <html> (body's overflow only propagates when html's is visible), so we
+  // must lock the root element — not just body — or the page scrolls behind
+  // the backdrop.
+  const lockScroll = () => {
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  };
+  const unlockScroll = () => {
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+  };
+
   openLoyaltyBtn.addEventListener('click', () => {
     loyaltyModal.showModal();
-    document.body.style.overflow = 'hidden'; // prevent background scrolling
+    lockScroll();
   });
 
   const closeLoyaltyModal = () => {
     loyaltyModal.close();
-    document.body.style.overflow = ''; // restore scrolling
+    unlockScroll();
   };
 
   closeLoyaltyBtn.addEventListener('click', closeLoyaltyModal);
@@ -332,9 +345,7 @@ if (loyaltyModal && openLoyaltyBtn && closeLoyaltyBtn) {
   });
 
   // Restore scrolling if the dialog is dismissed via the Escape key
-  loyaltyModal.addEventListener('close', () => {
-    document.body.style.overflow = '';
-  });
+  loyaltyModal.addEventListener('close', unlockScroll);
 }
 
 /* ==================== Membership Agreement Wizard Controller & Homepage Form ==================== */

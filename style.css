@@ -1123,6 +1123,7 @@ button {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgba(var(--color-accent-rgb), 0.3) rgba(255, 255, 255, 0.05);
 }
