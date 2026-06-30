@@ -300,6 +300,43 @@ if (dailyPassModal && openDailyPassBtn && closeDailyPassBtn) {
   }
 }
 
+// ---------- Loyalty Program (Train & Save) Modal Triggers ----------
+const loyaltyModal = document.getElementById('loyalty-modal');
+const openLoyaltyBtn = document.getElementById('open-loyalty-modal');
+const closeLoyaltyBtn = document.getElementById('close-loyalty-modal');
+
+if (loyaltyModal && openLoyaltyBtn && closeLoyaltyBtn) {
+  openLoyaltyBtn.addEventListener('click', () => {
+    loyaltyModal.showModal();
+    document.body.style.overflow = 'hidden'; // prevent background scrolling
+  });
+
+  const closeLoyaltyModal = () => {
+    loyaltyModal.close();
+    document.body.style.overflow = ''; // restore scrolling
+  };
+
+  closeLoyaltyBtn.addEventListener('click', closeLoyaltyModal);
+
+  // Close modal when clicking on the backdrop (outside the dialog box)
+  loyaltyModal.addEventListener('click', (e) => {
+    const dialogDimensions = loyaltyModal.getBoundingClientRect();
+    if (
+      e.clientX < dialogDimensions.left ||
+      e.clientX > dialogDimensions.right ||
+      e.clientY < dialogDimensions.top ||
+      e.clientY > dialogDimensions.bottom
+    ) {
+      closeLoyaltyModal();
+    }
+  });
+
+  // Restore scrolling if the dialog is dismissed via the Escape key
+  loyaltyModal.addEventListener('close', () => {
+    document.body.style.overflow = '';
+  });
+}
+
 /* ==================== Membership Agreement Wizard Controller & Homepage Form ==================== */
 
 // --- Generic Signature Pad Class/Initializer ---

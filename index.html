@@ -202,6 +202,21 @@
           <button class="btn btn-outline join-btn" data-pass="1 Year ($605 USD)" data-edit="passes.year.btn">Join</button>
         </div>
       </div>
+
+      <!-- Loyalty Discount teaser -->
+      <button type="button" class="loyalty-teaser reveal reveal-delay-2" id="open-loyalty-modal" aria-haspopup="dialog" aria-controls="loyalty-modal">
+        <span class="loyalty-teaser-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </span>
+        <span class="loyalty-teaser-text">
+          <span class="loyalty-teaser-label" data-edit="loyalty.label">Loyalty Discount</span>
+          <span class="loyalty-teaser-hook" data-edit="loyalty.hook">The longer you train with us, the less you pay — from USD 85 down to USD 65/month.</span>
+        </span>
+        <span class="loyalty-teaser-cta">
+          <span data-edit="loyalty.cta">Learn more</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </button>
     </div>
   </section>
 
@@ -729,6 +744,71 @@
             <span data-edit="modal.daily.waBtn">Contact us via WhatsApp</span>
           </a>
         </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ==================== Train & Save Loyalty Modal ==================== -->
+  <dialog class="clinic-modal loyalty-modal" id="loyalty-modal" aria-labelledby="loyalty-modal-title">
+    <div class="clinic-modal-content">
+      <button class="clinic-modal-close" id="close-loyalty-modal" aria-label="Close modal">&times;</button>
+
+      <div class="clinic-modal-header">
+        <h3 id="loyalty-modal-title" data-edit="modal.loyalty.title">Train &amp; Save — Loyalty Program</h3>
+        <p class="clinic-modal-subtitle" data-edit="modal.loyalty.subtitle">Rewards members who renew their membership every month.</p>
+      </div>
+
+      <div class="clinic-modal-body">
+        <!-- Tier ladder -->
+        <div class="loyalty-tier-list">
+          <div class="loyalty-tier">
+            <span class="loyalty-tier-period">
+              <span class="loyalty-tier-step" data-edit="modal.loyalty.tier0.step">Months 1–6</span>
+              <span class="loyalty-tier-note" data-edit="modal.loyalty.tier0.note">Starting rate</span>
+            </span>
+            <span class="loyalty-tier-price">
+              <span class="price-amount" data-edit="modal.loyalty.tier0.price">USD 85</span>
+              <span class="loyalty-tier-suffix">/ month</span>
+            </span>
+          </div>
+          <div class="loyalty-tier">
+            <span class="loyalty-tier-period">
+              <span class="loyalty-tier-step" data-edit="modal.loyalty.tier1.step">Months 7–12</span>
+              <span class="loyalty-tier-note" data-edit="modal.loyalty.tier1.note">After 6 months</span>
+            </span>
+            <span class="loyalty-tier-price">
+              <span class="price-amount" data-edit="modal.loyalty.tier1.price">USD 75</span>
+              <span class="loyalty-tier-suffix">/ month</span>
+            </span>
+          </div>
+          <div class="loyalty-tier featured">
+            <span class="loyalty-tier-period">
+              <span class="loyalty-tier-step" data-edit="modal.loyalty.tier2.step">Months 13 onwards</span>
+              <span class="loyalty-tier-note" data-edit="modal.loyalty.tier2.note">Best rate</span>
+            </span>
+            <span class="loyalty-tier-price">
+              <span class="price-amount" data-edit="modal.loyalty.tier2.price">USD 65</span>
+              <span class="loyalty-tier-suffix">/ month</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="pricing-modal-info-card" style="margin-top: var(--space-lg);">
+          <h4 data-edit="modal.loyalty.pauseTitle">Pause Policy</h4>
+          <p data-edit="modal.loyalty.pauseDesc">One pause of up to 6 weeks between April and June each year with no penalty — you keep your discounted rate.</p>
+        </div>
+
+        <div class="pricing-modal-info-card" style="margin-top: var(--space-md);">
+          <h4 data-edit="modal.loyalty.missedTitle">Missed Payments</h4>
+          <p data-edit="modal.loyalty.missedDesc">Missing a monthly payment outside the allowed 6-week pause resets the membership to USD 85/month; the discount is then rebuilt through continuous monthly renewals.</p>
+        </div>
+
+        <div class="pricing-modal-info-card" style="margin-top: var(--space-md);">
+          <h4 data-edit="modal.loyalty.prepayTitle">Prepay &amp; Save More</h4>
+          <p data-edit="modal.loyalty.prepayDesc">Members who pay 6-monthly or 12-monthly in advance receive the best discount rate.</p>
+        </div>
+
+        <p class="loyalty-closing" data-edit="modal.loyalty.closing">Stay consistent, save more.</p>
       </div>
     </div>
   </dialog>

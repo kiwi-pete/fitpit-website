@@ -1485,6 +1485,178 @@ button {
   font-size: var(--text-xs);
 }
 
+/* ==================== Loyalty Discount (Train & Save) ==================== */
+.loyalty-teaser {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  margin-top: var(--space-xl);
+  padding: var(--space-lg) var(--space-xl);
+  text-align: left;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(var(--color-accent-rgb), 0.35);
+  background: linear-gradient(120deg, rgba(var(--color-accent-rgb), 0.10) 0%, var(--glass-bg) 60%);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-family: var(--font-body);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.loyalty-teaser:hover,
+.loyalty-teaser:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--color-accent);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), 0 0 30px var(--color-accent-dim);
+  outline: none;
+}
+
+.loyalty-teaser-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-dim);
+  color: var(--color-accent);
+}
+
+.loyalty-teaser-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.loyalty-teaser-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.loyalty-teaser-label {
+  font-family: var(--font-heading);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-accent);
+}
+
+.loyalty-teaser-hook {
+  font-size: var(--text-base);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.loyalty-teaser-cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-heading);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-accent);
+}
+
+.loyalty-teaser-cta svg {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--transition-fast);
+}
+
+.loyalty-teaser:hover .loyalty-teaser-cta svg,
+.loyalty-teaser:focus-visible .loyalty-teaser-cta svg {
+  transform: translateX(4px);
+}
+
+/* Tier ladder inside the loyalty modal */
+.loyalty-tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.loyalty-tier {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+}
+
+.loyalty-tier.featured {
+  border-color: var(--color-accent);
+  background: linear-gradient(180deg, rgba(var(--color-accent-rgb), 0.10) 0%, var(--color-bg-elevated) 100%);
+}
+
+.loyalty-tier-period {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.loyalty-tier-step {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-base);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-primary);
+}
+
+.loyalty-tier-note {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.loyalty-tier.featured .loyalty-tier-note {
+  color: var(--color-accent);
+}
+
+.loyalty-tier-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.loyalty-tier-price .price-amount {
+  font-family: var(--font-heading);
+  font-size: var(--text-xl);
+  font-weight: 900;
+  color: var(--color-accent);
+  line-height: 1;
+}
+
+.loyalty-tier-price .loyalty-tier-suffix {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.loyalty-closing {
+  margin-top: var(--space-lg);
+  text-align: center;
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-accent);
+  letter-spacing: 0.02em;
+}
+
 @media (max-width: 576px) {
   .payment-methods-grid, .modal-links-grid {
     grid-template-columns: 1fr;
@@ -3584,5 +3756,29 @@ button {
 
   .clinic-modal-header h3 {
     font-size: var(--text-lg);
+  }
+}
+
+/* Loyalty Discount — mobile collapse (kept at END of file) */
+@media (max-width: 768px) {
+  .loyalty-teaser {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-lg);
+  }
+
+  .loyalty-teaser-cta {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .loyalty-tier {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .loyalty-tier-step {
+    font-size: var(--text-sm);
   }
 }
