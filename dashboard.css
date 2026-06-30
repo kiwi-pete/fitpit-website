@@ -388,7 +388,28 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
   gap: 16px;
   margin-bottom: 18px;
 }
-.ca-toolbar-info { margin: 0; color: var(--ink-soft); font-size: 0.88rem; max-width: 640px; line-height: 1.5; }
+/* Sub-tabs inside Class Admin (Update Schedule / Class Types) */
+.ca-subtabs {
+  display: flex;
+  gap: 6px;
+  background: var(--card);
+  padding: 6px;
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+}
+.ca-subtabs button {
+  border: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 9px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ca-subtabs button:hover { color: var(--ink); }
+.ca-subtabs button.active { background: var(--teal); color: #fff; }
 
 .ca-btn {
   border: 1px solid var(--line);
@@ -408,7 +429,8 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 .ca-btn:disabled { opacity: 0.55; cursor: default; border-color: var(--line); background: var(--card); color: var(--ink-soft); }
 .ca-btn-primary:disabled { background: #d7e6e5; border-color: #d7e6e5; color: #6f8a88; }
 
-.ca-cols { display: grid; grid-template-columns: 360px 1fr; gap: 18px; align-items: start; }
+.ca-subpanel { max-width: 720px; }
+.ca-week.ca-subpanel { max-width: none; }
 
 /* Class type library */
 .ca-tpl {
@@ -471,7 +493,7 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 .ca-week-block:last-child { margin-bottom: 0; }
 .ca-week-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
 .ca-week-title { font-weight: 800; font-size: 0.95rem; color: var(--ink); }
-.ca-week-actions { display: flex; align-items: center; gap: 14px; }
+.ca-week-foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
 .ca-btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; }
 
 .ca-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
@@ -515,7 +537,6 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 .ca-add-go { width: 100%; }
 
 @media (max-width: 1000px) {
-  .ca-cols { grid-template-columns: 1fr; }
   .ca-week-grid { grid-template-columns: 1fr; }
   .ca-day { flex-direction: column; min-height: auto; }
   .ca-day-head { flex-direction: row; gap: 8px; align-items: baseline; }

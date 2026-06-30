@@ -68,7 +68,23 @@ export async function initClassAdmin({ pin } = {}) {
   elGrid = $('#ca-grid');
   elSave = $('#ca-save');
   elSave.addEventListener('click', save);
+  initSubtabs();
   await loadData();
+}
+
+// Two sub-tabs inside Class Admin: "Update Schedule" (the weekly timetable,
+// shown by default) and "Class Types" (the class-type library).
+function initSubtabs() {
+  const nav = $('#ca-subtabs');
+  if (!nav) return;
+  nav.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-subtab]');
+    if (!btn) return;
+    const sub = btn.dataset.subtab;
+    nav.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
+    $('#ca-sub-schedule').hidden = sub !== 'schedule';
+    $('#ca-sub-types').hidden = sub !== 'types';
+  });
 }
 
 function status(msg, kind) {
@@ -350,16 +366,6 @@ function buildWeek(wkMon, today, isCurrent) {
   bar.append(
     el('div', 'ca-week-title', `${isCurrent ? 'This week' : 'Week of'} · ${dayNum(wkMon)} ${monthShort(wkMon)} – ${dayNum(sun)} ${monthShort(sun)}`)
   );
-  const acts = el('div', 'ca-week-actions');
-  const dup = el('button', 'ca-btn ca-btn-sm', 'Duplicate to next week →');
-  dup.onclick = () => duplicateWeek(wkMon);
-  acts.append(dup);
-  if (state.schedule.some((e) => mondayOf(e.date) === wkMon)) {
-    const clr = el('button', 'ca-link ca-link-danger', 'Clear week');
-    clr.onclick = () => clearWeek(wkMon);
-    acts.append(clr);
-  }
-  bar.append(acts);
   block.append(bar);
 
   const grid = el('div', 'ca-week-grid');
@@ -404,6 +410,19 @@ function buildWeek(wkMon, today, isCurrent) {
     grid.append(col);
   }
   block.append(grid);
+
+  // Week-level actions live at the bottom of the week they apply to.
+  const foot = el('div', 'ca-week-foot');
+  const dup = el('button', 'ca-btn ca-btn-sm', 'Duplicate to next week →');
+  dup.onclick = () => duplicateWeek(wkMon);
+  foot.append(dup);
+  if (state.schedule.some((e) => mondayOf(e.date) === wkMon)) {
+    const clr = el('button', 'ca-link ca-link-danger', 'Clear week');
+    clr.onclick = () => clearWeek(wkMon);
+    foot.append(clr);
+  }
+  block.append(foot);
+
   return block;
 }
 
