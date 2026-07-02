@@ -70,6 +70,7 @@ export async function initClassAdmin({ pin } = {}) {
   elSave = $('#ca-save');
   elSave.addEventListener('click', save);
   initSubtabs();
+  initRosterOutsideClose();
   await loadData();
 }
 
@@ -429,8 +430,9 @@ function buildWeek(wkMon, today, isCurrent) {
         chip.append(el('div', 'ca-slot-hint', 'Save to enable sign-ups'));
       }
       const x = el('button', 'ca-slot-x', '×');
-      x.title = 'Remove';
+      x.title = 'Delete this class';
       x.onclick = () => {
+        if (!confirm('Are you sure you want to delete this class?')) return;
         state.schedule = state.schedule.filter((z) => z !== e);
         markDirty();
       };
@@ -457,14 +459,30 @@ function buildWeek(wkMon, today, isCurrent) {
   return block;
 }
 
+// Close any open roster panels (optionally keeping one).
+function closeRosters(except) {
+  elGrid.querySelectorAll('.ca-names').forEach((p) => {
+    if (p !== except) p.remove();
+  });
+}
+
+// Close an open roster when clicking anywhere outside it (and outside the pill
+// that toggles it). Installed once; survives re-renders since it lives on the
+// document and re-queries the grid each time.
+function initRosterOutsideClose() {
+  document.addEventListener('click', (ev) => {
+    if (ev.target.closest('.ca-names') || ev.target.closest('.ca-slot-reg')) return;
+    closeRosters();
+  });
+}
+
 // Open/close the editable roster for a saved class. The panel lets the admin
-// see who's registered, remove people, and add walk-ins by name.
+// see who's registered, remove people, and add walk-ins by name. Only one
+// roster is open at a time.
 function toggleRoster(chip, entry, cap, regBtn) {
   const existing = chip.querySelector('.ca-names');
-  if (existing) {
-    existing.remove();
-    return;
-  }
+  closeRosters(); // collapse this (toggle off) or any other open roster
+  if (existing) return;
   const panel = el('div', 'ca-names');
   chip.append(panel);
   renderRoster(panel, entry, cap, regBtn);
