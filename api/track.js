@@ -86,6 +86,12 @@ export default async function handler(req, res) {
     const latitude = fnum(req.headers['x-vercel-ip-latitude']);
     const longitude = fnum(req.headers['x-vercel-ip-longitude']);
 
+    // Admin-device detection, server-side and robust: the fp_admin_device cookie
+    // (set by admin.js on unlock) rides along with this request automatically, so
+    // we can mark the session excluded even if the browser is running an older
+    // cached tracker that doesn't send the flag itself.
+    const adminDeviceCookie = /(?:^|;\s*)fp_admin_device=1(?:\s*;|\s*$)/.test(req.headers.cookie || '');
+
     // ---- session (optional, sent once) ----
     if (body.session && typeof body.session === 'object') {
       const s = body.session;
@@ -122,7 +128,9 @@ export default async function handler(req, res) {
         region,
         latitude,
         longitude,
-        excluded: s.excluded === true, // admin's own device — hidden from totals by default
+        // Admin's own device — hidden from totals. True if either the client flag
+        // (newer tracker) or the fp_admin_device cookie (works with any version).
+        excluded: s.excluded === true || adminDeviceCookie,
       };
       try {
         await insert('analytics_sessions', [full]);
