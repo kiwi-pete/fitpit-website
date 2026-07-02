@@ -233,6 +233,56 @@ function renderSourcesDonut(sources) {
   host.innerHTML = donutSVG(items, total, fmt(total), 'visitors') + donutLegend(items, total, true);
 }
 
+// Chart drawing surface (viewBox units). preserveAspectRatio="none" stretches
+// the SVG to fill the container, so all TEXT is drawn as crisp HTML overlays
+// (positioned by % across / px down) instead of stretched <text> nodes.
+const CH_W = 1000;
+const CH_H = 240;
+const CH_PAD = { l: 48, r: 14, t: 14, b: 22 };
+
+// Round a max value up to a clean axis top and return evenly spaced integer ticks.
+function niceScale(maxRaw, tickCount) {
+  tickCount = tickCount || 4;
+  const max = Math.max(1, Math.ceil(maxRaw));
+  const rawStep = max / tickCount;
+  const pow = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const cand = [1, 2, 2.5, 5, 10].map((m) => m * pow);
+  let step = cand.find((s) => s >= rawStep - 1e-9) || cand[cand.length - 1];
+  step = Math.max(1, Math.round(step)); // visit counts are integers → integer ticks
+  const niceMax = Math.ceil(max / step) * step;
+  const ticks = [];
+  for (let v = 0; v <= niceMax + 1e-9; v += step) ticks.push(v);
+  return { niceMax, ticks };
+}
+
+// HTML overlay: Y-axis numbers down the left gutter.
+function chartYLabels(pad, ticks, niceMax) {
+  const plotH = CH_H - pad.t - pad.b;
+  const yOf = (v) => pad.t + (1 - v / niceMax) * plotH;
+  const spans = ticks
+    .map((t) => `<span class="cy-ylabel" style="top:${yOf(t).toFixed(1)}px">${fmt(t)}</span>`)
+    .join('');
+  const wPct = (pad.l / CH_W) * 100;
+  return `<div class="cy-yaxis" style="width:${wPct.toFixed(3)}%">${spans}</div>`;
+}
+
+// HTML overlay: X-axis dates along the bottom (thinned to ~8 labels).
+function chartXLabels(pad, days, centers) {
+  const n = days.length;
+  const step = Math.max(1, Math.ceil(n / 8));
+  const spans = days
+    .map((day, i) => {
+      if (!(i % step === 0 || i === n - 1)) return '';
+      const leftPct = (centers[i] / CH_W) * 100;
+      const tx = i === 0 ? '0' : i === n - 1 ? '-100%' : '-50%';
+      return `<span class="cy-xlabel" style="left:${leftPct.toFixed(3)}%;transform:translateX(${tx})">${esc(
+        day.slice(5)
+      )}</span>`;
+    })
+    .join('');
+  return `<div class="cy-xaxis">${spans}</div>`;
+}
+
 function renderDaily(daily) {
   const host = $('#daily-chart');
   host.innerHTML = '';
@@ -240,95 +290,207 @@ function renderDaily(daily) {
     host.append(el('div', 'empty', 'No visits in this period yet.'));
     return;
   }
-  if (dailyMode === 'line') renderDailyLine(host, daily);
-  else renderDailyBars(host, daily);
+  const inner = el('div', 'chart-inner');
+  host.appendChild(inner);
+  if (dailyMode === 'line') renderDailyLine(inner, daily);
+  else renderDailyBars(inner, daily);
 }
 
-function renderDailyBars(host, daily) {
-  const W = 1000,
-    H = 240,
-    pad = { l: 10, r: 10, t: 16, b: 26 };
+function renderDailyBars(inner, daily) {
+  const pad = CH_PAD;
   const n = daily.length;
   const maxV = Math.max(1, ...daily.map((d) => d.pageViews));
-  const innerW = W - pad.l - pad.r;
+  const { niceMax, ticks } = niceScale(maxV);
+  const innerW = CH_W - pad.l - pad.r;
+  const plotH = CH_H - pad.t - pad.b;
   const slot = innerW / n;
   const bw = Math.min(36, slot * 0.62);
-  const baseY = H - pad.b;
-  const h = (v) => (v / maxV) * (H - pad.t - pad.b);
+  const baseY = CH_H - pad.b;
+  const hOf = (v) => (v / niceMax) * plotH;
 
+  const centers = [];
+  const cols = [];
   const bars = daily
     .map((d, i) => {
       const cx = pad.l + slot * i + slot / 2;
+      centers.push(cx);
       const x = (cx - bw / 2).toFixed(1);
-      const pvH = h(d.pageViews);
-      const uH = h(d.visitors);
+      const pvH = hOf(d.pageViews);
+      const uH = hOf(d.visitors);
       const w = bw.toFixed(1);
-      const tip = `${d.day} — ${fmt(d.pageViews)} views, ${fmt(d.visitors)} unique`;
       const rx = Math.min(4, bw / 3).toFixed(1);
-      // teal column (page views), then dark base (unique visitors) drawn over the bottom
+      cols.push({
+        lo: ((pad.l + slot * i) / CH_W) * 100,
+        hi: ((pad.l + slot * (i + 1)) / CH_W) * 100,
+        c: (cx / CH_W) * 100,
+        day: d.day,
+        pv: d.pageViews,
+        uq: d.visitors,
+        pvTop: baseY - pvH,
+        uqTop: baseY - uH,
+      });
+      // teal column (visits), then dark base (unique visitors) over the bottom
       return (
-        `<g><title>${esc(tip)}</title>` +
         (d.pageViews > 0
-          ? `<rect x="${x}" y="${(baseY - pvH).toFixed(1)}" width="${w}" height="${pvH.toFixed(1)}" rx="${rx}" fill="#0fb5ad" />`
+          ? `<rect x="${x}" y="${(baseY - pvH).toFixed(1)}" width="${w}" height="${pvH.toFixed(
+              1
+            )}" rx="${rx}" fill="#0fb5ad" />`
           : '') +
         (d.visitors > 0
-          ? `<rect x="${x}" y="${(baseY - uH).toFixed(1)}" width="${w}" height="${uH.toFixed(1)}" rx="${rx}" fill="#0f2330" />`
-          : '') +
-        '</g>'
+          ? `<rect x="${x}" y="${(baseY - uH).toFixed(1)}" width="${w}" height="${uH.toFixed(
+              1
+            )}" rx="${rx}" fill="#0f2330" />`
+          : '')
       );
     })
     .join('');
 
-  const ends =
-    `<text x="${pad.l}" y="${H - 6}" font-size="10" fill="#9aa7b2" text-anchor="start">${daily[0].day}</text>` +
-    (n > 1
-      ? `<text x="${W - pad.r}" y="${H - 6}" font-size="10" fill="#9aa7b2" text-anchor="end">${daily[n - 1].day}</text>`
-      : '');
-
-  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Daily visits chart">
-    <line x1="${pad.l}" y1="${baseY}" x2="${W - pad.r}" y2="${baseY}" stroke="#eef2f6" />
-    ${bars}
-    ${ends}
-  </svg>`;
-}
-
-function renderDailyLine(host, daily) {
-  const W = 1000,
-    H = 240,
-    pad = { l: 36, r: 12, t: 14, b: 26 };
-  const maxV = Math.max(1, ...daily.map((d) => Math.max(d.pageViews, d.visitors)));
-  const n = daily.length;
-  const x = (i) => pad.l + (n === 1 ? (W - pad.l - pad.r) / 2 : (i * (W - pad.l - pad.r)) / (n - 1));
-  const y = (v) => pad.t + (1 - v / maxV) * (H - pad.t - pad.b);
-  const line = (key) => daily.map((d, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(d[key]).toFixed(1)}`).join(' ');
-  const area = (key) =>
-    `${line(key)} L${x(n - 1).toFixed(1)},${y(0).toFixed(1)} L${x(0).toFixed(1)},${y(0).toFixed(1)} Z`;
-
-  const gridY = [0, 0.5, 1]
+  const grid = ticks
     .map((t) => {
-      const yy = pad.t + t * (H - pad.t - pad.b);
-      const val = Math.round(maxV * (1 - t));
-      return `<line x1="${pad.l}" y1="${yy}" x2="${W - pad.r}" y2="${yy}" stroke="#eef2f6" />
-            <text x="4" y="${yy + 4}" font-size="11" fill="#9aa7b2">${val}</text>`;
+      const yy = (pad.t + (1 - t / niceMax) * plotH).toFixed(1);
+      return `<line x1="${pad.l}" y1="${yy}" x2="${CH_W - pad.r}" y2="${yy}" stroke="#eef2f6" />`;
     })
     .join('');
 
-  const step = Math.ceil(n / 8);
-  const labels = daily
-    .map((d, i) =>
-      i % step === 0 || i === n - 1
-        ? `<text x="${x(i).toFixed(1)}" y="${H - 6}" font-size="10" fill="#9aa7b2" text-anchor="middle">${d.day.slice(5)}</text>`
-        : ''
-    )
+  inner.innerHTML =
+    `<svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="Daily visits bar chart">${grid}${bars}</svg>` +
+    chartYLabels(pad, ticks, niceMax) +
+    chartXLabels(pad, daily.map((d) => d.day), centers);
+
+  attachDailyTip(inner, cols, { mode: 'bar', pad });
+}
+
+function renderDailyLine(inner, daily) {
+  const pad = CH_PAD;
+  const n = daily.length;
+  const maxV = Math.max(1, ...daily.map((d) => Math.max(d.pageViews, d.visitors)));
+  const { niceMax, ticks } = niceScale(maxV);
+  const innerW = CH_W - pad.l - pad.r;
+  const plotH = CH_H - pad.t - pad.b;
+  const xOf = (i) => pad.l + (n === 1 ? innerW / 2 : (i * innerW) / (n - 1));
+  const yOf = (v) => pad.t + (1 - v / niceMax) * plotH;
+  const linePath = (key) =>
+    daily.map((d, i) => `${i ? 'L' : 'M'}${xOf(i).toFixed(1)},${yOf(d[key]).toFixed(1)}`).join(' ');
+  const area = `${linePath('pageViews')} L${xOf(n - 1).toFixed(1)},${yOf(0).toFixed(1)} L${xOf(0).toFixed(
+    1
+  )},${yOf(0).toFixed(1)} Z`;
+
+  const grid = ticks
+    .map((t) => {
+      const yy = yOf(t).toFixed(1);
+      return `<line x1="${pad.l}" y1="${yy}" x2="${CH_W - pad.r}" y2="${yy}" stroke="#eef2f6" />`;
+    })
     .join('');
 
-  host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Daily visits chart">
-    ${gridY}
-    <path d="${area('pageViews')}" fill="rgba(15,181,173,0.12)" stroke="none" />
-    <path d="${line('pageViews')}" fill="none" stroke="#0fb5ad" stroke-width="2.5" stroke-linejoin="round" />
-    <path d="${line('visitors')}" fill="none" stroke="#0f2330" stroke-width="2.5" stroke-linejoin="round" />
-    ${labels}
-  </svg>`;
+  const centers = daily.map((d, i) => xOf(i));
+  const cols = daily.map((d, i) => ({
+    lo: ((i === 0 ? pad.l : (xOf(i - 1) + xOf(i)) / 2) / CH_W) * 100,
+    hi: ((i === n - 1 ? CH_W - pad.r : (xOf(i) + xOf(i + 1)) / 2) / CH_W) * 100,
+    c: (xOf(i) / CH_W) * 100,
+    day: d.day,
+    pv: d.pageViews,
+    uq: d.visitors,
+    pvTop: yOf(d.pageViews),
+    uqTop: yOf(d.visitors),
+  }));
+
+  inner.innerHTML =
+    `<svg viewBox="0 0 ${CH_W} ${CH_H}" preserveAspectRatio="none" role="img" aria-label="Daily visits line chart">` +
+    grid +
+    `<path d="${area}" fill="rgba(15,181,173,0.12)" stroke="none" />` +
+    `<path d="${linePath('pageViews')}" fill="none" stroke="#0fb5ad" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke" />` +
+    `<path d="${linePath('visitors')}" fill="none" stroke="#0f2330" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke" />` +
+    `</svg>` +
+    chartYLabels(pad, ticks, niceMax) +
+    chartXLabels(pad, daily.map((d) => d.day), centers);
+
+  attachDailyTip(inner, cols, { mode: 'line', pad });
+}
+
+// Shared hover interaction: a floating tooltip with exact Visits/Unique counts,
+// plus a highlight band (bars) or guide line + dots (line), driven by one
+// mousemove listener that maps the pointer's x to the nearest day column.
+function attachDailyTip(inner, cols, opts) {
+  const pad = opts.pad;
+  const tip = el('div', 'chart-tip');
+  tip.hidden = true;
+  const band = el('div', opts.mode === 'bar' ? 'chart-band' : 'chart-guide');
+  band.hidden = true;
+  inner.appendChild(band);
+  let dotV, dotU;
+  if (opts.mode === 'line') {
+    dotV = el('div', 'chart-dot');
+    dotU = el('div', 'chart-dot');
+    dotV.style.background = '#0fb5ad';
+    dotU.style.background = '#0f2330';
+    dotV.hidden = dotU.hidden = true;
+    inner.appendChild(dotV);
+    inner.appendChild(dotU);
+  }
+  inner.appendChild(tip);
+
+  const bandTop = pad.t;
+  const bandH = CH_H - pad.t - pad.b;
+
+  function hide() {
+    tip.hidden = true;
+    band.hidden = true;
+    if (dotV) dotV.hidden = dotU.hidden = true;
+  }
+
+  function show(i) {
+    const c = cols[i];
+    const rect = inner.getBoundingClientRect();
+    tip.innerHTML =
+      `<div class="tt-day">${esc(c.day)}</div>` +
+      `<div class="tt-row"><span class="tt-dot" style="background:#0fb5ad"></span>Visits<strong>${fmt(c.pv)}</strong></div>` +
+      `<div class="tt-row"><span class="tt-dot" style="background:#0f2330"></span>Unique<strong>${fmt(c.uq)}</strong></div>`;
+    tip.hidden = false;
+
+    // Highlight
+    band.hidden = false;
+    band.style.top = bandTop + 'px';
+    band.style.height = bandH + 'px';
+    if (opts.mode === 'bar') {
+      band.style.left = c.lo + '%';
+      band.style.width = c.hi - c.lo + '%';
+    } else {
+      band.style.left = c.c + '%';
+      dotV.hidden = dotU.hidden = false;
+      dotV.style.left = dotU.style.left = c.c + '%';
+      dotV.style.top = c.pvTop + 'px';
+      dotU.style.top = c.uqTop + 'px';
+    }
+
+    // Position tooltip: centred over the column, above the taller bar/point,
+    // flipped below and clamped horizontally so it stays inside the chart.
+    const cxPx = (c.c / 100) * rect.width;
+    const tw = tip.offsetWidth;
+    const th = tip.offsetHeight;
+    let left = cxPx - tw / 2;
+    left = Math.max(2, Math.min(rect.width - tw - 2, left));
+    let top = Math.min(c.pvTop, c.uqTop) - th - 10;
+    if (top < 2) top = Math.min(c.pvTop, c.uqTop) + 12;
+    top = Math.max(2, Math.min(rect.height - th - 2, top));
+    tip.style.left = left + 'px';
+    tip.style.top = top + 'px';
+  }
+
+  inner.addEventListener('mousemove', (e) => {
+    const rect = inner.getBoundingClientRect();
+    if (!rect.width) return;
+    const xPct = ((e.clientX - rect.left) / rect.width) * 100;
+    let idx = -1;
+    for (let i = 0; i < cols.length; i++) {
+      if (xPct >= cols[i].lo && xPct <= cols[i].hi) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx === -1) idx = xPct < cols[0].lo ? 0 : cols.length - 1; // snap to nearest end
+    show(idx);
+  });
+  inner.addEventListener('mouseleave', hide);
 }
 
 function renderVBars(sel, items, format) {

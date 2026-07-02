@@ -117,8 +117,35 @@ body {
 .dot-views { background: var(--teal); }
 .dot-visitors { background: #0f2330; }
 
-.chart { width: 100%; overflow: hidden; }
-.chart svg { width: 100%; height: 240px; display: block; }
+.chart { width: 100%; }
+.chart-inner { position: relative; width: 100%; height: 240px; }
+.chart-inner svg { width: 100%; height: 240px; display: block; }
+
+/* Axis labels drawn as crisp HTML over the (stretched) SVG */
+.cy-yaxis { position: absolute; left: 0; top: 0; height: 100%; pointer-events: none; }
+.cy-ylabel {
+  position: absolute; right: 6px; transform: translateY(-50%);
+  font-size: 11px; color: var(--ink-soft); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.cy-xaxis { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; pointer-events: none; }
+.cy-xlabel { position: absolute; bottom: 2px; font-size: 10px; color: var(--ink-soft); white-space: nowrap; }
+
+/* Hover highlight + tooltip */
+.chart-band { position: absolute; background: rgba(15, 181, 173, 0.1); border-radius: 4px; pointer-events: none; }
+.chart-guide { position: absolute; width: 0; border-left: 1px dashed #c3ccd4; pointer-events: none; }
+.chart-dot {
+  position: absolute; width: 9px; height: 9px; border-radius: 50%;
+  transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff; pointer-events: none;
+}
+.chart-tip {
+  position: absolute; z-index: 5; pointer-events: none;
+  background: #0f2330; color: #fff; border-radius: 8px; padding: 8px 10px;
+  font-size: 12px; line-height: 1.4; box-shadow: 0 6px 20px rgba(15, 35, 48, 0.28); white-space: nowrap;
+}
+.chart-tip .tt-day { font-weight: 700; margin-bottom: 4px; }
+.chart-tip .tt-row { display: flex; align-items: center; gap: 6px; }
+.chart-tip .tt-row strong { margin-left: auto; padding-left: 12px; font-weight: 700; }
+.chart-tip .tt-dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
 
 .bars { display: flex; flex-direction: column; gap: 11px; }
 .bar-row { display: grid; grid-template-columns: 120px 1fr 48px; align-items: center; gap: 10px; font-size: 0.86rem; }
