@@ -330,17 +330,18 @@
   <!-- ==================== Classes ==================== -->
   <section class="classes section-padding" id="classes">
     <div class="container">
-      <!-- Live weekly timetable (populated from /api/classes; hidden until loaded).
-           Shown first so members see the upcoming sessions before the class tiles. -->
-      <div id="class-schedule" class="class-schedule reveal" hidden style="margin-bottom: var(--space-3xl);">
-        <h3 class="class-schedule-title">This Week's <span class="accent-text">Timetable</span></h3>
-        <div id="class-schedule-grid" class="class-schedule-grid"></div>
-      </div>
-
       <div class="classes-header">
         <p class="section-label reveal" data-edit="classes.label">Group Fitness</p>
         <h2 class="section-title reveal reveal-delay-1"><span data-edit="classes.title.pre">Fitness </span><span class="accent-text" data-edit="classes.title.accent">Classes</span></h2>
         <p class="section-subtitle reveal reveal-delay-2" data-edit="classes.subtitle">High-energy group classes led by our expert trainers. All fitness levels welcome. Access to classes is included with your 1, 3, 6 month, or 1 year pass. Walk-in class passes available for <strong>$10 USD | 25,000 TSH</strong>.</p>
+      </div>
+
+      <!-- Live weekly timetable (populated from /api/classes; hidden until loaded).
+           Sits below the "Fitness Classes" heading and above the class-description
+           tiles, so members see this week's sessions before the descriptions. -->
+      <div id="class-schedule" class="class-schedule reveal" hidden style="margin-bottom: var(--space-2xl);">
+        <h3 class="class-schedule-title">This Week's <span class="accent-text">Timetable</span></h3>
+        <div id="class-schedule-grid" class="class-schedule-grid"></div>
       </div>
 
       <!-- Owner-managed class tiles. The hardcoded tiles below are the default
