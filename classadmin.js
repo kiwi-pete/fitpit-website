@@ -389,10 +389,10 @@ function buildWeek(wkMon, today, isCurrent) {
         el('div', 'ca-slot-time', `${fmtTime(e.start_time)}${e.end_time ? '–' + fmtTime(e.end_time) : ''}`)
       );
       if (e.classId) {
-        const cap = e.capacity != null ? e.capacity : 10;
+        const cap = e.capacity != null ? e.capacity : 12;
         const regBtn = el('button', 'ca-slot-reg' + ((e.registered || 0) > 0 ? ' has' : ''), `&#128100; ${e.registered || 0}/${cap}`);
-        regBtn.title = 'View who registered';
-        regBtn.onclick = () => toggleNames(chip, e.classId);
+        regBtn.title = 'View, add or remove who’s registered';
+        regBtn.onclick = () => toggleRoster(chip, e, cap, regBtn);
         chip.append(regBtn);
       } else if (state.dirty) {
         chip.append(el('div', 'ca-slot-hint', 'Save to enable sign-ups'));
@@ -426,26 +426,121 @@ function buildWeek(wkMon, today, isCurrent) {
   return block;
 }
 
-async function toggleNames(chip, classId) {
+// Open/close the editable roster for a saved class. The panel lets the admin
+// see who's registered, remove people, and add walk-ins by name.
+function toggleRoster(chip, entry, cap, regBtn) {
   const existing = chip.querySelector('.ca-names');
   if (existing) {
     existing.remove();
     return;
   }
-  const panel = el('div', 'ca-names', 'Loading…');
+  const panel = el('div', 'ca-names');
   chip.append(panel);
+  renderRoster(panel, entry, cap, regBtn);
+}
+
+// Reflect a new registration count on the pill (and keep local state in sync so
+// a later full re-render shows the right number).
+function updatePill(regBtn, entry, count, cap) {
+  entry.registered = count;
+  regBtn.innerHTML = `&#128100; ${count}/${cap}`;
+  regBtn.classList.toggle('has', count > 0);
+}
+
+async function renderRoster(panel, entry, cap, regBtn) {
+  panel.innerHTML = 'Loading…';
+  let regs;
   try {
-    const res = await fetch(`/api/register?classId=${encodeURIComponent(classId)}`, {
+    const res = await fetch(`/api/register?classId=${encodeURIComponent(entry.classId)}`, {
       headers: { 'x-admin-pin': state.pin },
     });
     const d = await res.json();
     if (!res.ok) throw new Error(d.error || res.status);
-    panel.innerHTML =
-      d.names && d.names.length
-        ? `<div class="ca-names-head">${d.names.length} registered</div>` + d.names.map((n) => `<div class="ca-name">${esc(n)}</div>`).join('')
-        : '<em>No sign-ups yet</em>';
+    regs = Array.isArray(d.registrations) ? d.registrations : (d.names || []).map((n) => ({ id: null, name: n }));
   } catch (err) {
-    panel.textContent = 'Could not load names.';
+    panel.textContent = 'Could not load registrations.';
+    return;
+  }
+
+  updatePill(regBtn, entry, regs.length, cap);
+  panel.innerHTML = '';
+  panel.append(el('div', 'ca-names-head', `${regs.length}/${cap} registered`));
+  if (!regs.length) panel.append(el('div', 'ca-names-empty', 'No sign-ups yet'));
+  regs.forEach((r) => {
+    const row = el('div', 'ca-name');
+    row.append(el('span', 'ca-name-txt', esc(r.name)));
+    if (r.id) {
+      const del = el('button', 'ca-name-x', '×');
+      del.type = 'button';
+      del.title = 'Remove from class';
+      del.onclick = () => removeReg(r, entry, cap, regBtn, panel);
+      row.append(del);
+    }
+    panel.append(row);
+  });
+
+  // Add-a-name row.
+  const addRow = el('div', 'ca-name-add');
+  const input = el('input', 'ca-name-input');
+  input.type = 'text';
+  input.maxLength = 60;
+  input.placeholder = 'Add a name…';
+  const addBtn = el('button', 'ca-name-addbtn', 'Add');
+  addBtn.type = 'button';
+  const go = () => addReg(input, addBtn, entry, cap, regBtn, panel);
+  addBtn.onclick = go;
+  input.onkeydown = (ev) => {
+    if (ev.key === 'Enter') {
+      ev.preventDefault();
+      go();
+    }
+  };
+  addRow.append(input, addBtn);
+  panel.append(addRow);
+}
+
+async function removeReg(reg, entry, cap, regBtn, panel) {
+  if (!reg.id) return;
+  if (!confirm(`Remove ${reg.name} from this class?`)) return;
+  try {
+    const res = await fetch(
+      `/api/register?classId=${encodeURIComponent(entry.classId)}&registrationId=${encodeURIComponent(reg.id)}`,
+      { method: 'DELETE', headers: { 'x-admin-pin': state.pin } }
+    );
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.ok) throw new Error(d.message || d.error || `Remove failed (${res.status})`);
+    await renderRoster(panel, entry, cap, regBtn);
+    status(`Removed ${reg.name}.`, 'success');
+  } catch (err) {
+    status('Could not remove: ' + err.message, '');
+  }
+}
+
+async function addReg(input, addBtn, entry, cap, regBtn, panel) {
+  const name = input.value.trim();
+  if (!name) {
+    input.focus();
+    return;
+  }
+  addBtn.disabled = true;
+  addBtn.textContent = 'Adding…';
+  try {
+    const res = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-pin': state.pin },
+      body: JSON.stringify({ classId: entry.classId, name }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok || !d.ok) throw new Error(d.message || d.error || `Add failed (${res.status})`);
+    input.value = '';
+    await renderRoster(panel, entry, cap, regBtn);
+    input.focus();
+    status(d.already ? `${name} is already registered.` : `Added ${name}.`, 'success');
+  } catch (err) {
+    status('Could not add: ' + err.message, '');
+  } finally {
+    addBtn.disabled = false;
+    addBtn.textContent = 'Add';
   }
 }
 

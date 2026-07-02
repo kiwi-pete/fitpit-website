@@ -6,9 +6,14 @@
    app sees them too.
 
    - POST /api/register  { classId, name }   → public. Registers a
-                          guest by name (capacity-checked).
+                          guest by name (capacity-checked). With a valid
+                          admin PIN the capacity check is waived so the
+                          gym can add walk-ins to a full class.
    - GET  /api/register?classId=<uuid>       → PIN-gated. Returns the
-                          list of registered names for the admin.
+                          registrations for the admin (id + name).
+   - DELETE /api/register?classId=<uuid>&registrationId=<uuid>
+                          → PIN-gated. Cancels a single registration
+                          (soft delete via status='cancelled').
 
    Env: SUPABASE_SERVICE_ROLE_KEY (required), SUPABASE_URL, CLASS_ADMIN_PIN
    ============================================================ */
@@ -40,27 +45,65 @@ async function sb(path, { method = 'GET', body } = {}) {
 export default async function handler(req, res) {
   if (!SERVICE_KEY) return res.status(503).json({ error: 'not_configured' });
 
-  // --- Admin: list registrant names for a class (PIN required) ---
+  // --- Admin: list registrations for a class (PIN required) ---
   if (req.method === 'GET') {
     const pin = req.headers['x-admin-pin'] || (req.query && req.query.pin);
     if (pin == null || String(pin) !== ADMIN_PIN) return res.status(401).json({ error: 'unauthorized' });
     const classId = req.query && req.query.classId;
     if (!uuidRe.test(String(classId || ''))) return res.status(400).json({ error: 'bad_class' });
     try {
-      const regs = await sb(
-        `class_registrations?class_id=eq.${classId}&select=guest_name,member_id,created_at,status&order=created_at.asc`
-      );
-      const names = (regs || []).filter(active).map((r) => r.guest_name || '(member)');
+      const regs = (
+        await sb(
+          `class_registrations?class_id=eq.${classId}&select=id,guest_name,member_id,created_at,status&order=created_at.asc`
+        )
+      ).filter(active);
+
+      // Resolve member names so the roster shows real names, not "(member)".
+      const memberIds = [...new Set(regs.map((r) => r.member_id).filter(Boolean))];
+      const memberName = {};
+      if (memberIds.length) {
+        const members = await sb(
+          `members?id=in.(${memberIds.map((id) => encodeURIComponent(id)).join(',')})&select=id,name`
+        );
+        (members || []).forEach((m) => (memberName[m.id] = m.name));
+      }
+
+      const registrations = regs.map((r) => ({
+        id: r.id,
+        name: r.guest_name || memberName[r.member_id] || '(member)',
+        isMember: !!r.member_id,
+      }));
+      const names = registrations.map((r) => r.name); // kept for backwards compatibility
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).json({ ok: true, names, registered: names.length });
+      return res.status(200).json({ ok: true, registrations, names, registered: registrations.length });
     } catch (err) {
       console.error('register GET error:', err);
       return res.status(500).json({ error: 'read_failed', message: String(err.message || err) });
     }
   }
 
+  // --- Admin: remove (cancel) a single registration (PIN required) ---
+  if (req.method === 'DELETE') {
+    const pin = req.headers['x-admin-pin'] || (req.query && req.query.pin);
+    if (pin == null || String(pin) !== ADMIN_PIN) return res.status(401).json({ error: 'unauthorized' });
+    const registrationId = req.query && req.query.registrationId;
+    if (!uuidRe.test(String(registrationId || ''))) return res.status(400).json({ error: 'bad_registration' });
+    try {
+      // Soft delete: keep the row but mark it cancelled, matching how the ops
+      // app and our own count logic treat cancellations (excluded everywhere).
+      await sb(`class_registrations?id=eq.${registrationId}`, {
+        method: 'PATCH',
+        body: { status: 'cancelled' },
+      });
+      return res.status(200).json({ ok: true });
+    } catch (err) {
+      console.error('register DELETE error:', err);
+      return res.status(500).json({ error: 'delete_failed', message: String(err.message || err) });
+    }
+  }
+
   if (req.method !== 'POST') {
-    res.setHeader('Allow', 'GET, POST');
+    res.setHeader('Allow', 'GET, POST, DELETE');
     return res.status(405).json({ error: 'method_not_allowed' });
   }
 
@@ -74,6 +117,11 @@ export default async function handler(req, res) {
     }
   }
   body = body && typeof body === 'object' ? body : {};
+
+  // An admin PIN (from the schedule editor) lets the gym add a walk-in even to
+  // a full class; public sign-ups stay capacity-checked.
+  const pin = req.headers['x-admin-pin'] || body.pin;
+  const isAdmin = pin != null && String(pin) === ADMIN_PIN;
 
   const classId = String(body.classId || '');
   const name = str(body.name, 60);
@@ -94,13 +142,13 @@ export default async function handler(req, res) {
     if (current.some((r) => (r.guest_name || '').trim().toLowerCase() === cleanName.toLowerCase())) {
       return res.status(200).json({ ok: true, already: true, registered: current.length, spaces: Math.max(0, cap - current.length) });
     }
-    if (current.length >= cap) {
+    if (!isAdmin && current.length >= cap) {
       return res.status(409).json({ error: 'full', message: 'Sorry, this class is full.', registered: current.length, spaces: 0 });
     }
 
     await sb('class_registrations', {
       method: 'POST',
-      body: [{ class_id: classId, guest_name: cleanName, registered_by: 'website', status: 'registered' }],
+      body: [{ class_id: classId, guest_name: cleanName, registered_by: isAdmin ? 'admin' : 'website', status: 'registered' }],
     });
     const newCount = current.length + 1;
     return res.status(200).json({ ok: true, registered: newCount, spaces: Math.max(0, cap - newCount) });
