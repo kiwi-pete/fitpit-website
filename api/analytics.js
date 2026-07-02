@@ -63,6 +63,34 @@ async function fetchAll(table, columns, fromISO, toISO) {
   return rows;
 }
 
+// All admin-device (excluded) session ids, across all time. Small set (only the
+// operators' own devices), fetched once per dashboard load so exclusion holds
+// even at date-range boundaries. Throws if the `excluded` column doesn't exist
+// yet (pre-migration) — the caller treats that as "exclude nothing".
+async function fetchExcludedSessionIds() {
+  const ids = new Set();
+  let offset = 0;
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const url = `${SUPABASE_URL}/rest/v1/analytics_sessions?select=id&excluded=is.true&order=id.asc`;
+    const res = await fetch(url, {
+      headers: {
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+        Range: `${offset}-${offset + PAGE - 1}`,
+        'Range-Unit': 'items',
+      },
+    });
+    if (!res.ok) throw new Error(`excluded ids read failed (${res.status}): ${await res.text()}`);
+    const batch = await res.json();
+    batch.forEach((r) => r && r.id && ids.add(r.id));
+    if (batch.length < PAGE) break;
+    offset += PAGE;
+    if (offset > 200000) break; // safety
+  }
+  return ids;
+}
+
 const PAGE_TITLES = {
   home: 'Home',
   passes: 'Memberships & Passes',
@@ -189,17 +217,27 @@ export default async function handler(req, res) {
       fetchAll('analytics_web_vitals', 'created_at,session_id,metric,value', fromISO, toISO),
     ]);
 
-    // Split admin-device (excluded) sessions from the rest. Rows from other
-    // tables are matched to their session by id. Pre-migration (no `excluded`
-    // column) nothing is excluded, so everything shows as public — safe default.
-    const excludedIds = new Set(allSessions.filter((s) => s.excluded).map((s) => s.id));
-    const excludedCount = excludedIds.size;
-    const keepSession = (s) => (scope === 'admin' ? !!s.excluded : !s.excluded);
-    const keepRow = (sid) => (scope === 'admin' ? excludedIds.has(sid) : !excludedIds.has(sid));
-    const sessions = allSessions.filter(keepSession);
-    const pageViews = allPageViews.filter((p) => keepRow(p.session_id));
-    const events = allEvents.filter((e) => keepRow(e.session_id));
-    const vitals = allVitals.filter((v) => keepRow(v.session_id));
+    // Split admin-device (excluded) sessions from the rest so their visits never
+    // contribute to ANY metric in the default view. The set of admin session ids
+    // is fetched across ALL TIME (not just this range) so page views/events whose
+    // session started just outside the window are still caught — exclusion is
+    // absolute. Pre-migration (no `excluded` column) the fetch fails and the set
+    // is empty, so everything shows as public — safe default.
+    let excludedIds;
+    try {
+      excludedIds = await fetchExcludedSessionIds();
+    } catch (e) {
+      console.warn('Analytics: excluded-id fetch failed (migration not run yet?), excluding nothing:', e.message);
+      excludedIds = new Set();
+    }
+    // Count of admin-device sessions that fall within the selected range (for the
+    // dashboard's "N sessions excluded in this period" note).
+    const excludedCount = allSessions.filter((s) => s.excluded || excludedIds.has(s.id)).length;
+    const keep = (sid) => (scope === 'admin' ? excludedIds.has(sid) : !excludedIds.has(sid));
+    const sessions = allSessions.filter((s) => keep(s.id));
+    const pageViews = allPageViews.filter((p) => keep(p.session_id));
+    const events = allEvents.filter((e) => keep(e.session_id));
+    const vitals = allVitals.filter((v) => keep(v.session_id));
 
     // ---- visitors / page views ----
     const visitorSet = new Set();
