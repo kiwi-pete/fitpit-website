@@ -144,6 +144,42 @@
     return 'large-desktop';
   }
 
+  // Parse the OS version from the UA string. Apple deliberately hides the exact
+  // device model, but the OS version is available. Windows NT 10.0 covers both
+  // Windows 10 and 11 (indistinguishable via UA), so it's reported as "10/11".
+  function classifyOSVersion() {
+    let m;
+    if (/iphone|ipad|ipod/i.test(ua) && (m = ua.match(/OS (\d+(?:[_.]\d+){0,2})/i))) return m[1].replace(/_/g, '.');
+    if ((m = ua.match(/Android (\d+(?:\.\d+)?)/i))) return m[1];
+    if ((m = ua.match(/Windows NT (\d+\.\d+)/i)))
+      return { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' }[m[1]] || m[1];
+    if ((m = ua.match(/Mac OS X (\d+(?:[_.]\d+){1,2})/i))) return m[1].replace(/_/g, '.');
+    return null;
+  }
+
+  function classifyBrowserVersion() {
+    let m;
+    if (/edg\//i.test(ua)) m = ua.match(/edg\/(\d+)/i);
+    else if (/firefox|fxios/i.test(ua)) m = ua.match(/(?:firefox|fxios)\/(\d+)/i);
+    else if (/crios/i.test(ua)) m = ua.match(/crios\/(\d+)/i);
+    else if (/chrome|chromium/i.test(ua)) m = ua.match(/(?:chrome|chromium)\/(\d+)/i);
+    else if (/version\//i.test(ua)) m = ua.match(/version\/(\d+(?:\.\d+)?)/i); // Safari
+    return m ? m[1] : null;
+  }
+
+  // Client Hints expose the real hardware model — but only on Android/Chromium.
+  // Apple (Safari/iOS) returns nothing here, which is why the dashboard falls
+  // back to a best-guess from screen size for Apple devices.
+  async function highEntropy() {
+    try {
+      const d = navigator.userAgentData;
+      if (d && d.getHighEntropyValues) return (await d.getHighEntropyValues(['model', 'platformVersion'])) || {};
+    } catch {
+      /* ignore */
+    }
+    return {};
+  }
+
   function referrerDomain() {
     try {
       if (!document.referrer) return '';
@@ -476,6 +512,8 @@
       /* ignore */
     }
 
+    const ch = await highEntropy();
+
     sessionPayload = {
       referrer: document.referrer ? document.referrer.slice(0, 300) : null,
       referrer_domain: refDomain || null,
@@ -486,7 +524,13 @@
       device_type: classifyDevice(),
       browser: classifyBrowser(),
       os: classifyOS(),
+      os_version: classifyOSVersion() || (ch.platformVersion ? String(ch.platformVersion).slice(0, 20) : null),
+      browser_version: classifyBrowserVersion(),
+      device_model: ch.model ? String(ch.model).slice(0, 60) : null, // real model (Android only)
       screen_bucket: screenBucket(window.innerWidth || screen.width),
+      screen_w: screen.width || null,
+      screen_h: screen.height || null,
+      dpr: Math.round((window.devicePixelRatio || 1) * 100) / 100,
       viewport_w: window.innerWidth || null,
       viewport_h: window.innerHeight || null,
       country,

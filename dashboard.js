@@ -119,6 +119,7 @@ function donutLegend(items, total, showCount) {
 let currentRange = '30d';
 let dailyMode = 'bar';
 let lastDaily = null;
+let lastData = null;
 
 async function load(rangeKey) {
   currentRange = rangeKey;
@@ -152,6 +153,7 @@ function clearStatus() {
 }
 
 function render(d) {
+  lastData = d;
   renderSummary(d.summary, d.countries);
   lastDaily = d.daily;
   renderDaily(d.daily);
@@ -629,12 +631,227 @@ function renderVitals(rows) {
   });
 }
 
+/* ============================================================
+   Drill-down modals: click a tile to see the full detail.
+   ============================================================ */
+
+// Equirectangular (plate carrée) world map: lon/lat map linearly to x/y, so
+// dots placed by the same formula line up exactly. Admin-only page, so an
+// external base image is fine; if it fails to load we fall back to a plain
+// ocean background + graticule and still plot the dots.
+const WORLD_MAP_SRC = 'https://upload.wikimedia.org/wikipedia/commons/8/83/Equirectangular_projection_SW.jpg';
+
+// Approximate country centroids [lat, lon] for the country-level fallback dots
+// (used until precise city-level data accumulates). Not exhaustive — countries
+// without an entry simply aren't dotted (they still appear in the table).
+const CENTROIDS = {
+  TZ: [-6.4, 34.9], KE: [0.2, 37.9], UG: [1.4, 32.3], RW: [-1.9, 29.9], BI: [-3.4, 29.9],
+  ZA: [-30.6, 22.9], ET: [9.1, 40.5], NG: [9.1, 8.7], GH: [7.9, -1.0], EG: [26.8, 30.8],
+  MA: [31.8, -7.1], ZM: [-13.1, 27.8], MZ: [-18.7, 35.5], ZW: [-19.0, 29.2], MW: [-13.3, 34.3],
+  GB: [54.0, -2.0], IE: [53.4, -8.2], FR: [46.2, 2.2], DE: [51.2, 10.4], IT: [41.9, 12.6],
+  ES: [40.5, -3.7], PT: [39.4, -8.2], NL: [52.1, 5.3], BE: [50.5, 4.5], CH: [46.8, 8.2],
+  AT: [47.5, 14.6], SE: [60.1, 18.6], NO: [60.5, 8.5], DK: [56.3, 9.5], FI: [61.9, 25.7],
+  PL: [51.9, 19.1], CZ: [49.8, 15.5], GR: [39.1, 21.8], RO: [45.9, 24.9], HU: [47.2, 19.5],
+  RU: [61.5, 105.3], UA: [48.4, 31.2], TR: [39.0, 35.2], IL: [31.0, 34.9],
+  AE: [23.4, 53.8], SA: [23.9, 45.1], QA: [25.3, 51.2], IN: [22.4, 78.9], PK: [30.4, 69.3],
+  CN: [35.9, 104.2], JP: [36.2, 138.3], KR: [35.9, 127.8], TH: [15.9, 100.9], SG: [1.35, 103.8],
+  MY: [4.2, 101.9], ID: [-2.5, 118.0], PH: [12.9, 121.8], VN: [14.1, 108.3],
+  US: [39.8, -98.6], CA: [56.1, -106.3], MX: [23.6, -102.5], BR: [-14.2, -51.9], AR: [-38.4, -63.6],
+  CL: [-35.7, -71.5], CO: [4.6, -74.3], PE: [-9.2, -75.0], AU: [-25.3, 133.8], NZ: [-40.9, 174.9],
+};
+
+function ensureModal() {
+  let ov = document.getElementById('drill-modal');
+  if (ov) return ov;
+  ov = el('div', 'modal-overlay');
+  ov.id = 'drill-modal';
+  ov.hidden = true;
+  ov.innerHTML =
+    '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="drill-title">' +
+    '<div class="modal-head"><h3 class="modal-title" id="drill-title"></h3>' +
+    '<button class="modal-close" type="button" aria-label="Close">✕</button></div>' +
+    '<div class="modal-body"></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click', (e) => {
+    if (e.target === ov || e.target.closest('.modal-close')) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+  return ov;
+}
+function openModal(title, node) {
+  const ov = ensureModal();
+  ov.querySelector('.modal-title').textContent = title;
+  const body = ov.querySelector('.modal-body');
+  body.innerHTML = '';
+  body.appendChild(node);
+  ov.hidden = false;
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  const ov = document.getElementById('drill-modal');
+  if (ov) ov.hidden = true;
+  document.body.style.overflow = '';
+}
+
+function buildMapPoints(d) {
+  const pts = [];
+  const seen = new Set();
+  (d.locations || []).forEach((l) => {
+    if (l.lat == null || l.lon == null) return;
+    if (l.country) seen.add(l.country);
+    const label = [l.city, l.region, countryLabel(l.country)].filter(Boolean).join(', ') || 'Unknown';
+    pts.push({ lat: l.lat, lon: l.lon, count: l.count, label, kind: 'city' });
+  });
+  (d.countries || []).forEach((c) => {
+    if (seen.has(c.key)) return; // finer city dots already cover this country
+    const cc = CENTROIDS[c.key];
+    if (!cc) return;
+    pts.push({ lat: cc[0], lon: cc[1], count: c.count, label: countryLabel(c.key), kind: 'country' });
+  });
+  return pts;
+}
+
+function worldMap(d) {
+  const wrap = el('div', 'worldmap');
+  const img = new Image();
+  img.className = 'worldmap-img';
+  img.alt = '';
+  img.referrerPolicy = 'no-referrer';
+  img.addEventListener('error', () => wrap.classList.add('worldmap-noimg'));
+  img.src = WORLD_MAP_SRC;
+  wrap.appendChild(img);
+
+  const layer = el('div', 'worldmap-dots');
+  wrap.appendChild(layer);
+
+  const pts = buildMapPoints(d);
+  const max = Math.max(1, ...pts.map((p) => p.count));
+  pts.forEach((p) => {
+    const size = 8 + Math.sqrt(p.count / max) * 22;
+    const dot = el('div', 'worldmap-dot' + (p.kind === 'city' ? ' is-city' : ''));
+    dot.style.left = ((p.lon + 180) / 360) * 100 + '%';
+    dot.style.top = ((90 - p.lat) / 180) * 100 + '%';
+    dot.style.width = dot.style.height = size.toFixed(1) + 'px';
+    dot.title = `${p.label} — ${fmt(p.count)} visitor${p.count === 1 ? '' : 's'}`;
+    layer.appendChild(dot);
+  });
+  if (!pts.length) wrap.appendChild(el('div', 'worldmap-empty', 'No location data in this period yet.'));
+  return wrap;
+}
+
+function locationView(d) {
+  const wrap = el('div', 'drill');
+  wrap.appendChild(worldMap(d));
+  wrap.appendChild(
+    el(
+      'div',
+      'map-legend',
+      '<span><i class="mdot city"></i>City (precise)</span><span><i class="mdot country"></i>Country (approx.)</span>'
+    )
+  );
+  const locs = d.locations || [];
+  if (locs.length) {
+    const rows = locs
+      .map(
+        (l) =>
+          `<tr><td>${esc([l.city, l.region].filter(Boolean).join(', ') || '—')}</td>` +
+          `<td>${flagEmoji(l.country)} ${esc(countryLabel(l.country))}</td><td>${fmt(l.count)}</td></tr>`
+      )
+      .join('');
+    wrap.appendChild(
+      el(
+        'div',
+        'table-wrap',
+        `<table><thead><tr><th>City / Region</th><th>Country</th><th>Visitors</th></tr></thead><tbody>${rows}</tbody></table>`
+      )
+    );
+  } else {
+    wrap.appendChild(
+      el('p', 'card-sub', 'City-level detail appears here as new visits are recorded. Showing country totals for now.')
+    );
+    const rows = (d.countries || [])
+      .map((c) => `<tr><td>${flagEmoji(c.key)} ${esc(countryLabel(c.key))}</td><td>${fmt(c.count)}</td></tr>`)
+      .join('');
+    wrap.appendChild(
+      el('div', 'table-wrap', `<table><thead><tr><th>Country</th><th>Visitors</th></tr></thead><tbody>${rows}</tbody></table>`)
+    );
+  }
+  return wrap;
+}
+
+function deviceView(d) {
+  const wrap = el('div', 'drill');
+  const dd = d.deviceDetails || [];
+  if (dd.length) {
+    const rows = dd
+      .map(
+        (x) =>
+          `<tr><td>${esc(x.model)}</td><td>${esc(x.os)}</td><td>${esc(x.browser)}</td>` +
+          `<td>${esc(x.resolution)}</td><td>${fmt(x.count)}</td></tr>`
+      )
+      .join('');
+    wrap.appendChild(
+      el(
+        'div',
+        'table-wrap',
+        `<table><thead><tr><th>Device</th><th>OS</th><th>Browser</th><th>Screen</th><th>Sessions</th></tr></thead><tbody>${rows}</tbody></table>`
+      )
+    );
+    wrap.appendChild(
+      el(
+        'p',
+        'card-sub',
+        'Apple hides the exact model, so iPhone/iPad are a best guess from screen size (labelled “likely”). Android models are exact. Screen is in CSS pixels × pixel-ratio.'
+      )
+    );
+  } else {
+    wrap.appendChild(el('p', 'card-sub', 'Detailed device data appears here as new visits are recorded.'));
+  }
+  return wrap;
+}
+
+function listView(items, labelHtml, header) {
+  const rows = (items || []).map((r) => `<tr><td>${labelHtml(r)}</td><td>${fmt(r.count)}</td></tr>`).join('');
+  return el(
+    'div',
+    'table-wrap',
+    `<table><thead><tr><th>${esc(header)}</th><th>Visitors</th></tr></thead><tbody>${rows}</tbody></table>`
+  );
+}
+
+function openDrill(kind) {
+  const d = lastData;
+  if (!d) return;
+  if (kind === 'locations') openModal('Locations', locationView(d));
+  else if (kind === 'devices') openModal('Devices', deviceView(d));
+  else if (kind === 'browsers') openModal('Browsers', listView(d.browsers, (r) => esc(cap(r.key)), 'Browser'));
+  else if (kind === 'screens') openModal('Screen sizes', listView(d.screens, (r) => esc(screenLabel(r.key)), 'Screen size'));
+  else if (kind === 'toppages') openModal('Top pages', listView(d.topPages, (r) => esc(r.title), 'Page'));
+}
+
 // Initialised lazily by the admin shell the first time the Analytics tab is
 // opened, so no analytics request fires while the operator is in Class Admin.
 let analyticsStarted = false;
 export function initAnalytics() {
   if (analyticsStarted) return;
   analyticsStarted = true;
+
+  // Delegated: any tile marked data-drill opens its detailed modal.
+  const panel = document.getElementById('tab-analytics') || document;
+  panel.addEventListener('click', (e) => {
+    const card = e.target.closest('.card[data-drill]');
+    if (card) openDrill(card.getAttribute('data-drill'));
+  });
+  panel.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const card = e.target.closest('.card[data-drill]');
+    if (card) {
+      e.preventDefault();
+      openDrill(card.getAttribute('data-drill'));
+    }
+  });
 
   $('#ranges').addEventListener('click', (e) => {
     const btn = e.target.closest('button[data-range]');

@@ -65,29 +65,70 @@ export default async function handler(req, res) {
       str(req.headers['x-country-code'], 2) ||
       null;
 
+    // City-level location comes from Vercel's edge geo headers (derived from IP,
+    // no browser permission prompt, no raw IP stored). City is URL-encoded by
+    // Vercel (e.g. "New%20York"), so decode it. Accuracy is city-level only.
+    const dec = (v, n = 120) => {
+      const s = str(v, n);
+      if (!s) return null;
+      try {
+        return decodeURIComponent(s);
+      } catch {
+        return s;
+      }
+    };
+    const fnum = (v) => {
+      const n = parseFloat(str(v, 32));
+      return isFinite(n) ? n : null;
+    };
+    const city = dec(req.headers['x-vercel-ip-city']);
+    const region = dec(req.headers['x-vercel-ip-country-region'], 30);
+    const latitude = fnum(req.headers['x-vercel-ip-latitude']);
+    const longitude = fnum(req.headers['x-vercel-ip-longitude']);
+
     // ---- session (optional, sent once) ----
     if (body.session && typeof body.session === 'object') {
       const s = body.session;
-      await insert('analytics_sessions', [
-        {
-          id: sessionId,
-          visitor_hash: visitorHash,
-          referrer: str(s.referrer),
-          referrer_domain: str(s.referrer_domain, 120),
-          utm_source: str(s.utm_source, 120),
-          utm_medium: str(s.utm_medium, 120),
-          utm_campaign: str(s.utm_campaign, 120),
-          source_group: str(s.source_group, 20),
-          device_type: str(s.device_type, 20),
-          browser: str(s.browser, 20),
-          os: str(s.os, 20),
-          screen_bucket: str(s.screen_bucket, 20),
-          viewport_w: num(s.viewport_w),
-          viewport_h: num(s.viewport_h),
-          country: country || str(s.country, 2),
-          landing_path: str(s.landing_path, 200),
-        },
-      ]);
+      // Original columns — always present.
+      const base = {
+        id: sessionId,
+        visitor_hash: visitorHash,
+        referrer: str(s.referrer),
+        referrer_domain: str(s.referrer_domain, 120),
+        utm_source: str(s.utm_source, 120),
+        utm_medium: str(s.utm_medium, 120),
+        utm_campaign: str(s.utm_campaign, 120),
+        source_group: str(s.source_group, 20),
+        device_type: str(s.device_type, 20),
+        browser: str(s.browser, 20),
+        os: str(s.os, 20),
+        screen_bucket: str(s.screen_bucket, 20),
+        viewport_w: num(s.viewport_w),
+        viewport_h: num(s.viewport_h),
+        country: country || str(s.country, 2),
+        landing_path: str(s.landing_path, 200),
+      };
+      // Extended columns — added by the analytics detail migration. If they
+      // don't exist yet, we retry with just the base row so no session is lost.
+      const full = {
+        ...base,
+        os_version: str(s.os_version, 20),
+        browser_version: str(s.browser_version, 20),
+        device_model: str(s.device_model, 60),
+        screen_w: num(s.screen_w),
+        screen_h: num(s.screen_h),
+        dpr: num(s.dpr),
+        city,
+        region,
+        latitude,
+        longitude,
+      };
+      try {
+        await insert('analytics_sessions', [full]);
+      } catch (e) {
+        console.warn('Analytics: extended session insert failed, retrying base columns:', e.message);
+        await insert('analytics_sessions', [base]);
+      }
     }
 
     // ---- page views ----

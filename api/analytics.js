@@ -93,6 +93,64 @@ function median(arr) {
 function dayKey(iso) {
   return new Date(iso).toISOString().slice(0, 10);
 }
+function capWord(x) {
+  return x ? x.charAt(0).toUpperCase() + x.slice(1) : x;
+}
+
+// Best-guess Apple model from logical screen size + DPR. Apple never exposes the
+// real model in the browser, so this is a heuristic: several models share a
+// screen size and can't be told apart, and it's always shown labelled "(likely)".
+// Portrait-normalised (w = short side, h = long side).
+const APPLE_SCREENS = {
+  '320x568x2': 'iPhone SE / 5S',
+  '375x667x2': 'iPhone 6/7/8 / SE 2–3',
+  '414x736x3': 'iPhone 6/7/8 Plus',
+  '360x780x3': 'iPhone 12/13 mini',
+  '375x812x3': 'iPhone X / XS / 11 Pro',
+  '414x896x2': 'iPhone XR / 11',
+  '414x896x3': 'iPhone XS Max / 11 Pro Max',
+  '390x844x3': 'iPhone 12 / 13 / 14',
+  '428x926x3': 'iPhone 12–14 Pro Max / 14 Plus',
+  '393x852x3': 'iPhone 14 Pro / 15 / 16',
+  '430x932x3': 'iPhone 15 Plus / 15 Pro Max / 16 Plus',
+  '402x874x3': 'iPhone 16 Pro',
+  '440x956x3': 'iPhone 16 Pro Max',
+  '768x1024x2': 'iPad 9.7"',
+  '810x1080x2': 'iPad 10.2"',
+  '820x1180x2': 'iPad Air / iPad 10.9"',
+  '834x1112x2': 'iPad Air / Pro 10.5"',
+  '834x1194x2': 'iPad Pro 11"',
+  '1024x1366x2': 'iPad Pro 12.9"',
+};
+function appleModel(s) {
+  const a = s.screen_w || 0;
+  const b = s.screen_h || 0;
+  if (!a || !b) return null;
+  const w = Math.min(a, b);
+  const h = Math.max(a, b);
+  const dpr = Math.round(s.dpr || 0);
+  return APPLE_SCREENS[`${w}x${h}x${dpr}`] || null;
+}
+// Human-friendly model label. Real hardware model when available (Android), else
+// a best-guess for Apple, else a generic OS + form-factor label.
+function displayModel(s) {
+  if (s.device_model) return s.device_model; // real model (Android via Client Hints)
+  const os = s.os || '';
+  if (os === 'iOS') {
+    const g = appleModel(s);
+    if (g) return g + ' (likely)';
+    return s.device_type === 'tablet' ? 'iPad' : 'iPhone';
+  }
+  if (os === 'Android') return 'Android ' + (s.device_type || 'device');
+  if (os === 'macOS') return 'Mac';
+  if (os === 'Windows') return 'Windows PC';
+  if (os && os !== 'Other') return os + (s.device_type ? ' ' + s.device_type : '');
+  return capWord(s.device_type || 'Device');
+}
+function resLabel(s) {
+  if (!s.screen_w || !s.screen_h) return null;
+  return `${s.screen_w}×${s.screen_h}${s.dpr ? ` @${s.dpr}×` : ''}`;
+}
 
 export default async function handler(req, res) {
   if (!SERVICE_KEY) {
@@ -104,13 +162,24 @@ export default async function handler(req, res) {
     const fromISO = from.toISOString();
     const toISO = to.toISOString();
 
+    // The extended columns (device detail + geo) are added by the analytics
+    // detail migration. If it hasn't been run yet, the extended select 400s, so
+    // we fall back to the base columns and the dashboard still works.
+    const SESS_BASE =
+      'created_at,visitor_hash,referrer_domain,utm_source,utm_medium,utm_campaign,source_group,device_type,browser,screen_bucket,country';
+    const SESS_EXT =
+      SESS_BASE + ',os,os_version,browser_version,device_model,screen_w,screen_h,dpr,city,region,latitude,longitude';
+    const sessionsF = (async () => {
+      try {
+        return await fetchAll('analytics_sessions', SESS_EXT, fromISO, toISO);
+      } catch (e) {
+        console.warn('Analytics: extended session select failed, falling back to base columns:', e.message);
+        return await fetchAll('analytics_sessions', SESS_BASE, fromISO, toISO);
+      }
+    })();
+
     const [sessions, pageViews, events, vitals] = await Promise.all([
-      fetchAll(
-        'analytics_sessions',
-        'created_at,visitor_hash,referrer_domain,utm_source,utm_medium,utm_campaign,source_group,device_type,browser,screen_bucket,country',
-        fromISO,
-        toISO
-      ),
+      sessionsF,
       fetchAll('analytics_page_views', 'created_at,visitor_hash,page,title', fromISO, toISO),
       fetchAll('analytics_events', 'created_at,session_id,visitor_hash,type,page,label,detail,value', fromISO, toISO),
       fetchAll('analytics_web_vitals', 'created_at,metric,value', fromISO, toISO),
@@ -227,6 +296,40 @@ export default async function handler(req, res) {
       (campaignMap[ck] = campaignMap[ck] || new Set()).add(s.visitor_hash || Math.random());
     });
 
+    // ---- detailed device breakdown (model / OS+ver / browser+ver / resolution) ----
+    const ddMap = {};
+    // ---- precise locations (city-level, from Vercel edge geo) ----
+    const locMap = {};
+    sessions.forEach((s) => {
+      const model = displayModel(s);
+      const osStr = s.os ? s.os + (s.os_version ? ' ' + s.os_version : '') : '—';
+      const brStr = (s.browser ? capWord(s.browser) : '—') + (s.browser_version ? ' ' + s.browser_version : '');
+      const resStr = resLabel(s) || '—';
+      const dk = [model, osStr, brStr, resStr, s.device_type || ''].join('|||');
+      (ddMap[dk] = ddMap[dk] || {
+        model,
+        os: osStr,
+        browser: brStr,
+        resolution: resStr,
+        deviceType: s.device_type || '',
+        count: 0,
+      }).count++;
+
+      if (s.latitude != null && s.longitude != null) {
+        const lk = [s.city || '', s.region || '', s.country || ''].join('|||');
+        (locMap[lk] = locMap[lk] || {
+          city: s.city || null,
+          region: s.region || null,
+          country: s.country || null,
+          lat: s.latitude,
+          lon: s.longitude,
+          count: 0,
+        }).count++;
+      }
+    });
+    const deviceDetails = Object.values(ddMap).sort((a, b) => b.count - a.count);
+    const locations = Object.values(locMap).sort((a, b) => b.count - a.count);
+
     const campaigns = Object.entries(campaignMap)
       .map(([k, set]) => {
         const [source, medium, campaign] = k.split('|||');
@@ -278,7 +381,9 @@ export default async function handler(req, res) {
       pageInterest,
       timeByPage,
       countries: countriesArr,
+      locations,
       devices: toSorted(devices),
+      deviceDetails,
       browsers: toSorted(browsers),
       topPages,
       sources: toSorted(sources),
