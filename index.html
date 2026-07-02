@@ -330,6 +330,13 @@
   <!-- ==================== Classes ==================== -->
   <section class="classes section-padding" id="classes">
     <div class="container">
+      <!-- Live weekly timetable (populated from /api/classes; hidden until loaded).
+           Shown first so members see the upcoming sessions before the class tiles. -->
+      <div id="class-schedule" class="class-schedule reveal" hidden style="margin-bottom: var(--space-3xl);">
+        <h3 class="class-schedule-title">This Week's <span class="accent-text">Timetable</span></h3>
+        <div id="class-schedule-grid" class="class-schedule-grid"></div>
+      </div>
+
       <div class="classes-header">
         <p class="section-label reveal" data-edit="classes.label">Group Fitness</p>
         <h2 class="section-title reveal reveal-delay-1"><span data-edit="classes.title.pre">Fitness </span><span class="accent-text" data-edit="classes.title.accent">Classes</span></h2>
@@ -373,12 +380,6 @@
           <p>Take your strength and conditioning to the next level. A challenging full-body class designed to push your fitness boundaries.</p>
           <span class="class-card-cta" aria-hidden="true">See next sessions →</span>
         </div>
-      </div>
-
-      <!-- Live weekly timetable (populated from /api/classes; hidden until loaded) -->
-      <div id="class-schedule" class="class-schedule reveal" hidden style="margin-top: var(--space-2xl);">
-        <h3 class="class-schedule-title">This Week's <span class="accent-text">Timetable</span></h3>
-        <div id="class-schedule-grid" class="class-schedule-grid"></div>
       </div>
 
       <!-- Class info note -->
