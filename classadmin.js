@@ -24,6 +24,7 @@ const uuid = () =>
 const COLORS = ['#8B7BF7', '#0fb5ad', '#f7794b', '#f7c948', '#4b9bf7', '#e85d9b', '#34c759', '#ff5d5d'];
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const PAST_WEEKS = 8; // how many recent past weeks the editor can reveal
 
 /* ---- date helpers (anchored to gym-local time, East Africa) ------------- */
 function eatTodayISO() {
@@ -57,7 +58,7 @@ const fmtTime = (t) => {
   return `${h12}:${String(m).padStart(2, '0')}${ap}`;
 };
 
-const state = { pin: '2026', templates: [], schedule: [], dirty: false, editingId: null, loaded: false };
+const state = { pin: '2026', templates: [], schedule: [], dirty: false, editingId: null, loaded: false, showPast: false };
 
 let elStatus, elTemplates, elGrid, elSave;
 
@@ -100,7 +101,7 @@ function status(msg, kind) {
 async function loadData() {
   status('Loading…', 'info');
   try {
-    const res = await fetch('/api/classes?t=' + Date.now()); // always fresh
+    const res = await fetch('/api/classes?t=' + Date.now() + '&history=1'); // always fresh; include recent past
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.configured === false) {
@@ -350,21 +351,51 @@ function renderWeeks() {
   }
   const today = eatTodayISO();
   const curMon = mondayOf(today);
-  const weeks = new Set([curMon]);
+  const pastFloor = addDays(curMon, -7 * PAST_WEEKS);
+
+  // Current week is always shown; upcoming and recent-past weeks are added when
+  // they have entries.
+  const upcoming = new Set([curMon]);
+  const past = new Set();
   state.schedule.forEach((e) => {
     const m = mondayOf(e.date);
-    if (m >= curMon) weeks.add(m);
+    if (m >= curMon) upcoming.add(m);
+    else if (m >= pastFloor) past.add(m);
   });
-  [...weeks].sort().forEach((wkMon, i) => elGrid.append(buildWeek(wkMon, today, i === 0)));
+
+  [...upcoming].sort().forEach((wkMon) => elGrid.append(buildWeek(wkMon, today, wkMon === curMon)));
+
+  // Recent past weeks (most recent first) sit behind a toggle so the editor
+  // stays focused on what's coming up — but old classes are still one click
+  // away to view, amend or add attendees to.
+  const pastWeeks = [...past].sort().reverse();
+  if (pastWeeks.length) {
+    const wrap = el('div', 'ca-past');
+    const btn = el('button', 'ca-past-toggle');
+    const panel = el('div', 'ca-past-weeks');
+    const setLabel = () => (btn.textContent = state.showPast ? 'Hide past weeks' : `Show past weeks (${pastWeeks.length})`);
+    setLabel();
+    panel.hidden = !state.showPast;
+    btn.onclick = () => {
+      state.showPast = !state.showPast;
+      panel.hidden = !state.showPast;
+      setLabel();
+    };
+    pastWeeks.forEach((wkMon) => panel.append(buildWeek(wkMon, today, false)));
+    wrap.append(btn, panel);
+    elGrid.append(wrap);
+  }
 }
 
 function buildWeek(wkMon, today, isCurrent) {
   const sun = addDays(wkMon, 6);
-  const block = el('div', 'ca-week-block');
+  const isPast = wkMon < mondayOf(today);
+  const block = el('div', 'ca-week-block' + (isPast ? ' is-past' : ''));
 
   const bar = el('div', 'ca-week-bar');
+  const label = isCurrent ? 'This week' : isPast ? 'Past week' : 'Week of';
   bar.append(
-    el('div', 'ca-week-title', `${isCurrent ? 'This week' : 'Week of'} · ${dayNum(wkMon)} ${monthShort(wkMon)} – ${dayNum(sun)} ${monthShort(sun)}`)
+    el('div', 'ca-week-title', `${label} · ${dayNum(wkMon)} ${monthShort(wkMon)} – ${dayNum(sun)} ${monthShort(sun)}`)
   );
   block.append(bar);
 

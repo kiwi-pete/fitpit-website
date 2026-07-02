@@ -30,6 +30,10 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://lnxzqiydnpshaooflebs.s
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ADMIN_PIN = process.env.CLASS_ADMIN_PIN || '2026';
 const SETTINGS_ID = 'global';
+// How far back the admin can reach to view/amend classes that already ran. The
+// public site never asks for history (it only renders upcoming classes), so its
+// payload is unaffected; the admin passes ?history=1 to widen the window.
+const HISTORY_DAYS = 120;
 
 const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const timeRe = /^([01]\d|2[0-3]):[0-5]\d$/; // HH:MM
@@ -91,17 +95,24 @@ function cleanTemplate(t) {
   };
 }
 
+function isoDaysAgo(n) {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
 // Attach the materialised classes.id + capacity + registration count to each
-// future entry, so the site can show "spaces left" and register against the
-// right class. Registrant NAMES are never returned here — only counts.
-async function enrichSchedule(schedule) {
+// entry, so the site can show "spaces left" and register against the right
+// class. Registrant NAMES are never returned here — only counts. lookbackDays
+// widens the window into the past (0 = upcoming only, the public default).
+async function enrichSchedule(schedule, lookbackDays = 0) {
   if (!schedule.length) return schedule;
-  const today = new Date().toISOString().slice(0, 10);
+  const floor = isoDaysAgo(lookbackDays);
   const gids = [...new Set(schedule.map((e) => e.recurrence_group_id).filter((g) => uuidRe.test(g)))];
   if (!gids.length) return schedule.map((e) => ({ ...e }));
 
   const rows = await sb(
-    `classes?recurrence_group_id=in.${inList(gids)}&date=gte.${today}&select=id,recurrence_group_id,date,max_capacity`
+    `classes?recurrence_group_id=in.${inList(gids)}&date=gte.${floor}&select=id,recurrence_group_id,date,max_capacity`
   );
   const byKey = {};
   rows.forEach((r) => (byKey[`${r.recurrence_group_id}|${r.date}`] = r));
@@ -223,7 +234,8 @@ export default async function handler(req, res) {
     if (!SERVICE_KEY) return res.status(200).json({ configured: false, templates: [], schedule: [] });
     try {
       const { templates, schedule } = await readSettings();
-      const enriched = await enrichSchedule(schedule);
+      const lookback = req.query && req.query.history ? HISTORY_DAYS : 0;
+      const enriched = await enrichSchedule(schedule, lookback);
       // No caching: "spaces left" must reflect registrations in real time across
       // browsers/devices.
       res.setHeader('Cache-Control', 'no-store');
@@ -288,7 +300,9 @@ export default async function handler(req, res) {
     // registrations immediately without a second round-trip.
     let enriched = schedule;
     try {
-      enriched = await enrichSchedule(schedule);
+      // POST is admin-only, so enrich with history — otherwise past classes
+      // would lose their classId/count in the editor right after a save.
+      enriched = await enrichSchedule(schedule, HISTORY_DAYS);
     } catch (e) {
       /* counts are optional; the save itself already succeeded */
     }
