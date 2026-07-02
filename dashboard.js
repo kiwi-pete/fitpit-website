@@ -835,6 +835,19 @@ function updateAudienceBar(d) {
   const btn = $('#scope-toggle');
   const bar = $('#audience-bar');
   if (!btn) return;
+  // Exclusion can't work until the DB migration adds the `excluded` column.
+  if (d && d.exclusionActive === false) {
+    if (note)
+      note.textContent =
+        'Admin-device exclusion is not active yet — run the database migration (db/analytics-detail-migration.sql) so admin visits get tagged. Until then, admin-device visits are still counted.';
+    btn.textContent = currentScope === 'admin' ? '← Back to visitor analytics' : 'Show admin-device visits';
+    if (bar) {
+      bar.classList.add('is-warn');
+      bar.classList.remove('is-admin');
+    }
+    return;
+  }
+  if (bar) bar.classList.remove('is-warn');
   if (currentScope === 'admin') {
     if (note) note.textContent = 'Showing admin-device visits only — these are normally excluded from your analytics.';
     btn.textContent = '← Back to visitor analytics';

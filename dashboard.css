@@ -190,6 +190,8 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
   margin-bottom: 18px;
 }
 .audience-bar.is-admin { border-color: var(--teal); background: var(--teal-soft); }
+.audience-bar.is-warn { border-color: #f0c86a; background: #fff8e6; }
+.audience-bar.is-warn .audience-note { color: #8a6a00; font-weight: 600; }
 .audience-note { font-size: 0.85rem; color: var(--ink-soft); }
 .audience-bar.is-admin .audience-note { color: var(--teal-dark); font-weight: 600; }
 .scope-btn {
@@ -652,7 +654,15 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 .ca-week-block:last-child { margin-bottom: 0; }
 .ca-week-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
 .ca-week-title { font-weight: 800; font-size: 0.95rem; color: var(--ink); }
+.ca-week-block.is-past { opacity: 0.9; }
+.ca-week-block.is-past .ca-week-title { color: var(--ink-soft); }
 .ca-week-foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 12px; flex-wrap: wrap; }
+
+/* Past-weeks reveal — keeps the editor focused on upcoming classes */
+.ca-past { margin-top: 8px; padding-top: 16px; border-top: 1px dashed var(--line); }
+.ca-past-toggle { border: 1px solid var(--line); background: #fff; color: var(--ink-soft); font-weight: 700; font-size: 0.82rem; padding: 8px 16px; border-radius: 999px; cursor: pointer; }
+.ca-past-toggle:hover { border-color: var(--teal); color: var(--teal-dark); }
+.ca-past-weeks { margin-top: 16px; }
 .ca-btn-sm { padding: 6px 12px; font-size: 0.8rem; border-radius: 8px; }
 
 .ca-week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }

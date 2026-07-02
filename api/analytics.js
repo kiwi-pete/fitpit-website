@@ -224,11 +224,13 @@ export default async function handler(req, res) {
     // absolute. Pre-migration (no `excluded` column) the fetch fails and the set
     // is empty, so everything shows as public — safe default.
     let excludedIds;
+    let exclusionActive = true; // false when the `excluded` column doesn't exist yet
     try {
       excludedIds = await fetchExcludedSessionIds();
     } catch (e) {
       console.warn('Analytics: excluded-id fetch failed (migration not run yet?), excluding nothing:', e.message);
       excludedIds = new Set();
+      exclusionActive = false;
     }
     // Count of admin-device sessions that fall within the selected range (for the
     // dashboard's "N sessions excluded in this period" note).
@@ -424,6 +426,7 @@ export default async function handler(req, res) {
       range: key,
       scope,
       excludedCount,
+      exclusionActive,
       from: fromISO,
       to: toISO,
       summary: {
