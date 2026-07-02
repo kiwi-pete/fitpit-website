@@ -51,6 +51,12 @@ function unlock(pin) {
   unlocked = true;
   try {
     sessionStorage.setItem('fp_admin_pin', pin);
+    // Mark this device as an admin device (durable cookie + localStorage).
+    // The public-site tracker reads this (same origin) and tags its visits as
+    // "excluded", so an admin's own browsing is kept out of the analytics
+    // totals automatically — no per-device toggle needed.
+    localStorage.setItem('fp_admin_device', '1');
+    document.cookie = 'fp_admin_device=1; path=/; max-age=' + 60 * 60 * 24 * 730 + '; SameSite=Lax';
   } catch {
     /* ignore */
   }

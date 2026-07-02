@@ -158,17 +158,21 @@ export default async function handler(req, res) {
   }
   try {
     const key = String((req.query && req.query.range) || '30d');
+    // 'public' (default) hides admin-device visits; 'admin' shows ONLY them, so
+    // the operator can confirm their own devices are being excluded.
+    const scope = String((req.query && req.query.scope) || 'public') === 'admin' ? 'admin' : 'public';
     const { from, to } = range(key);
     const fromISO = from.toISOString();
     const toISO = to.toISOString();
 
-    // The extended columns (device detail + geo) are added by the analytics
-    // detail migration. If it hasn't been run yet, the extended select 400s, so
-    // we fall back to the base columns and the dashboard still works.
+    // The extended columns (device detail + geo + excluded) are added by the
+    // analytics detail migration. If it hasn't been run yet, the extended select
+    // 400s, so we fall back to the base columns and the dashboard still works.
     const SESS_BASE =
       'created_at,visitor_hash,referrer_domain,utm_source,utm_medium,utm_campaign,source_group,device_type,browser,screen_bucket,country';
     const SESS_EXT =
-      SESS_BASE + ',os,os_version,browser_version,device_model,screen_w,screen_h,dpr,city,region,latitude,longitude';
+      SESS_BASE +
+      ',id,os,os_version,browser_version,device_model,screen_w,screen_h,dpr,city,region,latitude,longitude,excluded';
     const sessionsF = (async () => {
       try {
         return await fetchAll('analytics_sessions', SESS_EXT, fromISO, toISO);
@@ -178,12 +182,24 @@ export default async function handler(req, res) {
       }
     })();
 
-    const [sessions, pageViews, events, vitals] = await Promise.all([
+    const [allSessions, allPageViews, allEvents, allVitals] = await Promise.all([
       sessionsF,
-      fetchAll('analytics_page_views', 'created_at,visitor_hash,page,title', fromISO, toISO),
+      fetchAll('analytics_page_views', 'created_at,session_id,visitor_hash,page,title', fromISO, toISO),
       fetchAll('analytics_events', 'created_at,session_id,visitor_hash,type,page,label,detail,value', fromISO, toISO),
-      fetchAll('analytics_web_vitals', 'created_at,metric,value', fromISO, toISO),
+      fetchAll('analytics_web_vitals', 'created_at,session_id,metric,value', fromISO, toISO),
     ]);
+
+    // Split admin-device (excluded) sessions from the rest. Rows from other
+    // tables are matched to their session by id. Pre-migration (no `excluded`
+    // column) nothing is excluded, so everything shows as public — safe default.
+    const excludedIds = new Set(allSessions.filter((s) => s.excluded).map((s) => s.id));
+    const excludedCount = excludedIds.size;
+    const keepSession = (s) => (scope === 'admin' ? !!s.excluded : !s.excluded);
+    const keepRow = (sid) => (scope === 'admin' ? excludedIds.has(sid) : !excludedIds.has(sid));
+    const sessions = allSessions.filter(keepSession);
+    const pageViews = allPageViews.filter((p) => keepRow(p.session_id));
+    const events = allEvents.filter((e) => keepRow(e.session_id));
+    const vitals = allVitals.filter((v) => keepRow(v.session_id));
 
     // ---- visitors / page views ----
     const visitorSet = new Set();
@@ -368,6 +384,8 @@ export default async function handler(req, res) {
     return res.status(200).json({
       configured: true,
       range: key,
+      scope,
+      excludedCount,
       from: fromISO,
       to: toISO,
       summary: {

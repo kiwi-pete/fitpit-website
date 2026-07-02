@@ -175,47 +175,38 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 
 .empty { color: var(--ink-soft); font-size: 0.85rem; padding: 8px 0; }
 
-/* ===================== Owner opt-out (exclude this device) ===================== */
-.optout-bar {
+/* ===================== Admin-device exclusion (status + confirm view) ===================== */
+.audience-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 14px 18px;
+  padding: 12px 18px;
   margin-bottom: 18px;
 }
-.optout-bar.on { border-color: var(--teal); background: var(--teal-soft); }
-.optout-text strong { display: block; font-size: 0.95rem; }
-.optout-sub { font-size: 0.8rem; color: var(--ink-soft); }
-.optout-switch {
-  position: relative;
-  width: 48px;
-  height: 27px;
+.audience-bar.is-admin { border-color: var(--teal); background: var(--teal-soft); }
+.audience-note { font-size: 0.85rem; color: var(--ink-soft); }
+.audience-bar.is-admin .audience-note { color: var(--teal-dark); font-weight: 600; }
+.scope-btn {
   flex-shrink: 0;
-  border: 0;
-  border-radius: 999px;
-  background: #cdd6de;
-  cursor: pointer;
-  transition: background 0.18s ease;
-}
-.optout-switch.on { background: var(--teal); }
-.optout-switch:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.optout-knob {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
+  border: 1px solid var(--line);
   background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
-  transition: transform 0.18s ease;
+  color: var(--teal-dark);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
-.optout-switch.on .optout-knob { transform: translateX(21px); }
+.scope-btn:hover { border-color: var(--teal); background: var(--teal-soft); }
+.scope-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.audience-bar.is-admin .scope-btn { background: #fff; border-color: var(--teal); }
 
 /* ===================== Drill-down (clickable tiles + modal) ===================== */
 .card[data-drill] { cursor: pointer; transition: box-shadow 0.15s ease, transform 0.15s ease; }

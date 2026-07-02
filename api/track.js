@@ -122,6 +122,7 @@ export default async function handler(req, res) {
         region,
         latitude,
         longitude,
+        excluded: s.excluded === true, // admin's own device — hidden from totals by default
       };
       try {
         await insert('analytics_sessions', [full]);

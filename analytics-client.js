@@ -23,16 +23,18 @@
   if (typeof window === 'undefined') return;
   if (location.pathname.toLowerCase().startsWith(ADMIN_PATH)) return;
 
-  // Device opt-out: the owner can exclude their own phone/laptop via the toggle
-  // in /secretadminlink → Analytics. Same origin, so the flag it sets here is
-  // read on the public site. Checked as a cookie OR localStorage for durability.
-  const OPTOUT_KEY = 'fp_no_track';
+  // Admin devices: any device that has logged into /secretadminlink is flagged
+  // by admin.js (same origin, so we can read the flag here). Their visits are
+  // still recorded, but tagged excluded:true so they're kept out of the
+  // analytics totals by default — the dashboard has an admin-only view to
+  // confirm the exclusion is working. Read as a cookie OR localStorage.
+  let isAdminDevice = false;
   try {
-    const viaCookie = document.cookie.split('; ').some((c) => c === OPTOUT_KEY + '=1');
-    const viaStorage = window.localStorage && localStorage.getItem(OPTOUT_KEY) === '1';
-    if (viaCookie || viaStorage) return;
+    isAdminDevice =
+      document.cookie.split('; ').some((c) => c === 'fp_admin_device=1') ||
+      (window.localStorage && localStorage.getItem('fp_admin_device') === '1');
   } catch {
-    /* storage/cookies unavailable — fall through and track normally */
+    /* storage/cookies unavailable — treat as a normal visitor */
   }
 
   const ua = navigator.userAgent || '';
@@ -547,6 +549,7 @@
       viewport_h: window.innerHeight || null,
       country,
       landing_path: location.pathname || '/',
+      excluded: isAdminDevice, // admin's own device — hidden from totals by default
     };
 
     // initial page view + observers

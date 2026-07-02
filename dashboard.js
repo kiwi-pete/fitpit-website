@@ -117,6 +117,7 @@ function donutLegend(items, total, showCount) {
 }
 
 let currentRange = '30d';
+let currentScope = 'public'; // 'public' hides admin-device visits; 'admin' shows only them
 let dailyMode = 'bar';
 let lastDaily = null;
 let lastData = null;
@@ -125,7 +126,9 @@ async function load(rangeKey) {
   currentRange = rangeKey;
   setStatus('Loading…', 'info');
   try {
-    const res = await fetch('/api/analytics?range=' + encodeURIComponent(rangeKey));
+    const res = await fetch(
+      '/api/analytics?range=' + encodeURIComponent(rangeKey) + (currentScope === 'admin' ? '&scope=admin' : '')
+    );
     const data = await res.json();
     if (data.configured === false) {
       setStatus(
@@ -154,6 +157,7 @@ function clearStatus() {
 
 function render(d) {
   lastData = d;
+  updateAudienceBar(d);
   renderSummary(d.summary, d.countries);
   lastDaily = d.daily;
   renderDaily(d.daily);
@@ -821,46 +825,29 @@ function listView(items, labelHtml, header) {
   );
 }
 
-/* ---- Device opt-out (exclude the owner's own phone/laptop) ----
-   Same origin as the public site, so the flag set here is read by
-   analytics-client.js on the live site. Stored as a durable cookie + a
-   localStorage flag; the tracker bails out when it sees either. */
-const OPTOUT_KEY = 'fp_no_track';
-function isOptedOut() {
-  try {
-    if (document.cookie.split('; ').some((c) => c === OPTOUT_KEY + '=1')) return true;
-    if (window.localStorage && localStorage.getItem(OPTOUT_KEY) === '1') return true;
-  } catch {
-    /* ignore */
-  }
-  return false;
-}
-function setOptOut(on) {
-  try {
-    if (on) {
-      if (window.localStorage) localStorage.setItem(OPTOUT_KEY, '1');
-      document.cookie = OPTOUT_KEY + '=1; path=/; max-age=' + 60 * 60 * 24 * 730 + '; SameSite=Lax';
-    } else {
-      if (window.localStorage) localStorage.removeItem(OPTOUT_KEY);
-      document.cookie = OPTOUT_KEY + '=; path=/; max-age=0; SameSite=Lax';
-    }
-  } catch {
-    /* ignore */
-  }
-}
-function reflectOptOut() {
-  const btn = $('#optout-toggle');
+/* ---- Audience scope (admin-device exclusion) ----
+   Admin devices are auto-excluded: admin.js sets a flag on unlock and the
+   public-site tracker tags those visits excluded:true. The dashboard hides
+   them by default; the "Show admin-device visits" button flips to an
+   admin-only view to confirm the exclusion is catching them. */
+function updateAudienceBar(d) {
+  const note = $('#audience-note');
+  const btn = $('#scope-toggle');
+  const bar = $('#audience-bar');
   if (!btn) return;
-  const on = isOptedOut();
-  btn.setAttribute('aria-checked', on ? 'true' : 'false');
-  btn.classList.toggle('on', on);
-  const bar = btn.closest('.optout-bar');
-  if (bar) bar.classList.toggle('on', on);
-  const state = $('#optout-state');
-  if (state)
-    state.textContent = on
-      ? 'This device is excluded — its visits are no longer counted.'
-      : 'Visits from this phone/laptop are being counted.';
+  if (currentScope === 'admin') {
+    if (note) note.textContent = 'Showing admin-device visits only — these are normally excluded from your analytics.';
+    btn.textContent = '← Back to visitor analytics';
+    if (bar) bar.classList.add('is-admin');
+  } else {
+    const n = (d && d.excludedCount) || 0;
+    if (note)
+      note.textContent = n
+        ? `Admin-device visits are automatically excluded — ${fmt(n)} session${n === 1 ? '' : 's'} in this period.`
+        : 'Visits from admin devices are automatically excluded.';
+    btn.textContent = 'Show admin-device visits';
+    if (bar) bar.classList.remove('is-admin');
+  }
 }
 
 function openDrill(kind) {
@@ -922,12 +909,11 @@ export function initAnalytics() {
     });
   }
 
-  const optBtn = $('#optout-toggle');
-  if (optBtn) {
-    reflectOptOut();
-    optBtn.addEventListener('click', () => {
-      setOptOut(!isOptedOut());
-      reflectOptOut();
+  const scopeBtn = $('#scope-toggle');
+  if (scopeBtn) {
+    scopeBtn.addEventListener('click', () => {
+      currentScope = currentScope === 'admin' ? 'public' : 'admin';
+      load(currentRange);
     });
   }
 

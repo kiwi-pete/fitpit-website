@@ -27,4 +27,8 @@ alter table public.analytics_sessions
   add column if not exists city            text,
   add column if not exists region          text,
   add column if not exists latitude        real,
-  add column if not exists longitude       real;
+  add column if not exists longitude       real,
+  -- Admin-device visits (anyone who has logged into /secretadminlink on that
+  -- device). Recorded but hidden from analytics totals by default; the
+  -- dashboard has an "admin-device" view to confirm the exclusion works.
+  add column if not exists excluded        boolean not null default false;
