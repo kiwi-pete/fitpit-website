@@ -821,6 +821,48 @@ function listView(items, labelHtml, header) {
   );
 }
 
+/* ---- Device opt-out (exclude the owner's own phone/laptop) ----
+   Same origin as the public site, so the flag set here is read by
+   analytics-client.js on the live site. Stored as a durable cookie + a
+   localStorage flag; the tracker bails out when it sees either. */
+const OPTOUT_KEY = 'fp_no_track';
+function isOptedOut() {
+  try {
+    if (document.cookie.split('; ').some((c) => c === OPTOUT_KEY + '=1')) return true;
+    if (window.localStorage && localStorage.getItem(OPTOUT_KEY) === '1') return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}
+function setOptOut(on) {
+  try {
+    if (on) {
+      if (window.localStorage) localStorage.setItem(OPTOUT_KEY, '1');
+      document.cookie = OPTOUT_KEY + '=1; path=/; max-age=' + 60 * 60 * 24 * 730 + '; SameSite=Lax';
+    } else {
+      if (window.localStorage) localStorage.removeItem(OPTOUT_KEY);
+      document.cookie = OPTOUT_KEY + '=; path=/; max-age=0; SameSite=Lax';
+    }
+  } catch {
+    /* ignore */
+  }
+}
+function reflectOptOut() {
+  const btn = $('#optout-toggle');
+  if (!btn) return;
+  const on = isOptedOut();
+  btn.setAttribute('aria-checked', on ? 'true' : 'false');
+  btn.classList.toggle('on', on);
+  const bar = btn.closest('.optout-bar');
+  if (bar) bar.classList.toggle('on', on);
+  const state = $('#optout-state');
+  if (state)
+    state.textContent = on
+      ? 'This device is excluded — its visits are no longer counted.'
+      : 'Visits from this phone/laptop are being counted.';
+}
+
 function openDrill(kind) {
   const d = lastData;
   if (!d) return;
@@ -877,6 +919,15 @@ export function initAnalytics() {
       dailyMode = btn.dataset.mode;
       toggle.querySelectorAll('button').forEach((b) => b.classList.toggle('active', b === btn));
       if (lastDaily) renderDaily(lastDaily);
+    });
+  }
+
+  const optBtn = $('#optout-toggle');
+  if (optBtn) {
+    reflectOptOut();
+    optBtn.addEventListener('click', () => {
+      setOptOut(!isOptedOut());
+      reflectOptOut();
     });
   }
 

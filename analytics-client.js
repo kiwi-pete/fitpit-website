@@ -23,6 +23,18 @@
   if (typeof window === 'undefined') return;
   if (location.pathname.toLowerCase().startsWith(ADMIN_PATH)) return;
 
+  // Device opt-out: the owner can exclude their own phone/laptop via the toggle
+  // in /secretadminlink → Analytics. Same origin, so the flag it sets here is
+  // read on the public site. Checked as a cookie OR localStorage for durability.
+  const OPTOUT_KEY = 'fp_no_track';
+  try {
+    const viaCookie = document.cookie.split('; ').some((c) => c === OPTOUT_KEY + '=1');
+    const viaStorage = window.localStorage && localStorage.getItem(OPTOUT_KEY) === '1';
+    if (viaCookie || viaStorage) return;
+  } catch {
+    /* storage/cookies unavailable — fall through and track normally */
+  }
+
   const ua = navigator.userAgent || '';
   const isBot =
     navigator.webdriver === true ||
