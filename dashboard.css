@@ -802,3 +802,36 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 @media (max-width: 640px) {
   .wc-frame-wrap { height: calc(100vh - 260px); min-height: 440px; }
 }
+
+/* ===================== Day Pass Waivers ===================== */
+.dpw-empty { color: var(--ink-soft); padding: 18px 4px; text-align: center; font-size: 0.9rem; }
+.dpw-row { cursor: pointer; transition: background 0.12s ease; }
+.dpw-row:hover { background: var(--teal-soft); }
+.dpw-view { pointer-events: none; } /* the whole row is clickable */
+
+.dpw-detail { display: grid; gap: 20px; }
+.dpw-media { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.dpw-media-box {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+  background: var(--bg); text-align: center;
+}
+.dpw-media-label {
+  display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--ink-soft); margin-bottom: 8px;
+}
+.dpw-media-box img { width: 100%; max-width: 320px; border-radius: 10px; margin: 0 auto; display: block; }
+.dpw-media-box img.dpw-sig { background: #0f0f0f; padding: 6px; }
+.dpw-none { color: var(--ink-soft); font-size: 0.85rem; padding: 20px 0; }
+.dpw-typed { font-family: 'Outfit', cursive; font-size: 1.8rem; color: var(--ink); margin: 14px 0 2px; }
+.dpw-typed-note { color: var(--ink-soft); font-size: 0.75rem; }
+
+.dpw-fields { display: grid; grid-template-columns: max-content 1fr; gap: 8px 18px; margin: 0; }
+.dpw-fields dt { color: var(--ink-soft); font-size: 0.85rem; font-weight: 600; }
+.dpw-fields dd { margin: 0; color: var(--ink); font-size: 0.9rem; word-break: break-word; }
+.dpw-loading { color: var(--ink-soft); text-align: center; padding: 24px; }
+
+@media (max-width: 560px) {
+  .dpw-media { grid-template-columns: 1fr; }
+  .dpw-fields { grid-template-columns: 1fr; gap: 2px 0; }
+  .dpw-fields dt { margin-top: 8px; }
+}

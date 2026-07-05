@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+  <!-- Non-public page: reached only via the QR code / direct link. Keep it out
+       of every search index and don't leak the referrer. -->
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex" />
+  <meta name="googlebot" content="noindex, nofollow" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="theme-color" content="#0A0A0A" />
+
+  <title>Fit Pit — Day Pass Waiver</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" />
+
+  <style>
+    :root {
+      --color-bg: #0A0A0A;
+      --color-bg-card: #161616;
+      --color-surface: #1A1A1A;
+      --color-border: rgba(255, 255, 255, 0.08);
+      --color-border-hover: rgba(255, 255, 255, 0.16);
+      --color-text-primary: #F5F5F5;
+      --color-text-secondary: #A0A0A0;
+      --color-text-muted: #6B6B6B;
+      --color-accent: #8B7BF7;
+      --color-accent-hover: #A99BFF;
+      --color-accent-dim: rgba(139, 123, 247, 0.14);
+      --color-danger: #ff6b6b;
+      --color-success: #57d38c;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Inter', sans-serif;
+      --radius: 12px;
+    }
+
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      line-height: 1.65;
+      font-size: 16px;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .wrap { max-width: 720px; margin: 0 auto; padding: 2rem 1.1rem 4rem; }
+
+    /* ---------- Header ---------- */
+    .brand {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-family: var(--font-heading); font-weight: 800; letter-spacing: -0.02em;
+      font-size: 1.35rem; text-transform: uppercase;
+    }
+    .brand .dot { color: var(--color-accent); }
+    .page-title {
+      font-family: var(--font-heading); font-weight: 700; letter-spacing: -0.02em;
+      font-size: clamp(1.7rem, 1.2rem + 3vw, 2.4rem); line-height: 1.15;
+      margin: 1.4rem 0 0.5rem;
+    }
+    .page-intro { color: var(--color-text-secondary); font-size: 1rem; max-width: 60ch; }
+
+    /* ---------- Waiver text ---------- */
+    .waiver {
+      margin-top: 1.6rem; background: var(--color-bg-card);
+      border: 1px solid var(--color-border); border-radius: var(--radius);
+      padding: 1.3rem 1.3rem 1.4rem;
+    }
+    .waiver h2 {
+      font-family: var(--font-heading); font-weight: 700; font-size: 1.15rem;
+      margin-bottom: 0.35rem;
+    }
+    .waiver .waiver-sub { color: var(--color-text-muted); font-size: 0.85rem; margin-bottom: 1.1rem; }
+    .waiver h3 {
+      font-family: var(--font-heading); font-weight: 600; font-size: 1.02rem;
+      color: var(--color-accent-hover); margin: 1.35rem 0 0.5rem;
+    }
+    .waiver h3:first-of-type { margin-top: 0.3rem; }
+    .waiver p { color: var(--color-text-secondary); font-size: 0.94rem; margin-bottom: 0.5rem; }
+    .waiver ul { list-style: none; }
+    .waiver li {
+      position: relative; padding-left: 1.15rem; margin-bottom: 0.55rem;
+      color: var(--color-text-secondary); font-size: 0.94rem;
+    }
+    .waiver li::before {
+      content: ""; position: absolute; left: 0; top: 0.62em;
+      width: 6px; height: 6px; border-radius: 50%; background: var(--color-accent);
+    }
+    .waiver li strong { color: var(--color-text-primary); font-weight: 600; }
+
+    /* ---------- Form ---------- */
+    form { margin-top: 1.8rem; }
+    .section-label {
+      font-family: var(--font-heading); font-weight: 600; font-size: 1.1rem;
+      margin: 1.9rem 0 0.9rem;
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 1rem; }
+    @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: 0.88rem; font-weight: 500; margin-bottom: 0.4rem; }
+    .field .req { color: var(--color-accent); }
+    .field .hint { color: var(--color-text-muted); font-weight: 400; }
+    .field input[type="text"],
+    .field input[type="tel"],
+    .field input[type="email"],
+    .field input[type="date"] {
+      width: 100%; background: var(--color-surface);
+      border: 1px solid var(--color-border); border-radius: 10px;
+      color: var(--color-text-primary); font: inherit; font-size: 1rem;
+      padding: 0.8rem 0.9rem; transition: border-color 150ms ease;
+      -webkit-appearance: none; appearance: none;
+    }
+    .field input::placeholder { color: var(--color-text-muted); }
+    .field input:focus {
+      outline: none; border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-dim);
+    }
+    .field.invalid input { border-color: var(--color-danger); }
+    .field .err { color: var(--color-danger); font-size: 0.8rem; margin-top: 0.35rem; min-height: 0.5rem; display: none; }
+    .field.invalid .err { display: block; }
+
+    /* ---------- Declarations (checkboxes) ---------- */
+    .declare {
+      display: flex; gap: 0.75rem; align-items: flex-start;
+      background: var(--color-bg-card); border: 1px solid var(--color-border);
+      border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 0.8rem;
+      cursor: pointer; transition: border-color 150ms ease;
+    }
+    .declare:hover { border-color: var(--color-border-hover); }
+    .declare.invalid { border-color: var(--color-danger); }
+    .declare input { margin-top: 0.2rem; width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--color-accent); }
+    .declare span { font-size: 0.9rem; color: var(--color-text-secondary); }
+    .declare span strong { color: var(--color-text-primary); font-weight: 600; }
+
+    /* ---------- Signature ---------- */
+    .sig-tabs { display: flex; gap: 0.5rem; margin-bottom: 0.7rem; }
+    .sig-tab {
+      flex: 1; padding: 0.6rem 0.8rem; border-radius: 9px;
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      color: var(--color-text-secondary); font: inherit; font-size: 0.9rem; font-weight: 500;
+      cursor: pointer; transition: all 150ms ease;
+    }
+    .sig-tab.active { background: var(--color-accent-dim); border-color: var(--color-accent); color: var(--color-accent-hover); }
+    .sig-panel { display: none; }
+    .sig-panel.active { display: block; }
+    .canvas-wrap { position: relative; }
+    #signature-canvas {
+      width: 100%; height: 180px; background: #0f0f0f;
+      border: 1px dashed var(--color-border-hover); border-radius: 10px;
+      touch-action: none; display: block; cursor: crosshair;
+    }
+    .btn-clear {
+      position: absolute; top: 0.55rem; right: 0.55rem;
+      background: rgba(0,0,0,0.5); border: 1px solid var(--color-border);
+      color: var(--color-text-secondary); font-size: 0.78rem; font-weight: 500;
+      padding: 0.35rem 0.7rem; border-radius: 7px; cursor: pointer;
+    }
+    .sig-caption { color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.45rem; }
+    #signature-typed {
+      width: 100%; background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: 10px; color: var(--color-text-primary);
+      font-family: 'Outfit', cursive; font-size: 1.6rem; padding: 0.9rem 1rem;
+    }
+    #signature-typed:focus { outline: none; border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-dim); }
+    .field-sig.invalid #signature-canvas,
+    .field-sig.invalid #signature-typed { border-color: var(--color-danger); }
+    .field-sig .err { color: var(--color-danger); font-size: 0.8rem; margin-top: 0.4rem; display: none; }
+    .field-sig.invalid .err { display: block; }
+
+    .sign-meta { color: var(--color-text-muted); font-size: 0.85rem; margin-top: 0.8rem; }
+    .sign-meta strong { color: var(--color-text-secondary); font-weight: 500; }
+
+    /* ---------- Selfie / photo ---------- */
+    .selfie-help { color: var(--color-text-secondary); font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .selfie-stage {
+      background: var(--color-bg-card); border: 1px solid var(--color-border);
+      border-radius: var(--radius); padding: 1.1rem; text-align: center;
+    }
+    .field-selfie.invalid .selfie-stage { border-color: var(--color-danger); }
+    .selfie-idle { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; padding: 0.6rem 0; }
+    .selfie-cam-icon { width: 44px; height: 44px; color: var(--color-text-muted); }
+    .btn-photo {
+      background: var(--color-accent); color: #0A0A0A;
+      font-family: var(--font-heading); font-weight: 700; font-size: 1rem;
+      padding: 0.75rem 1.6rem; border-radius: 10px; border: none; cursor: pointer;
+      transition: background 150ms ease;
+    }
+    .btn-photo:hover { background: var(--color-accent-hover); }
+    .btn-photo-alt {
+      background: transparent; border: 1px solid var(--color-border-hover);
+      color: var(--color-text-primary); font: inherit; font-weight: 500;
+      padding: 0.7rem 1.3rem; border-radius: 10px; cursor: pointer;
+    }
+    #selfie-video, #selfie-img {
+      width: 100%; max-width: 340px; aspect-ratio: 4 / 3; object-fit: cover;
+      border-radius: 10px; background: #0f0f0f; margin: 0 auto; display: block;
+      transform: scaleX(-1); /* mirror like a selfie */
+    }
+    #selfie-img { transform: none; }
+    .selfie-actions, .selfie-result { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; }
+    .selfie-actions { margin-top: 0.9rem; flex-direction: row; justify-content: center; }
+    .selfie-result { gap: 0.9rem; }
+    .selfie-note { color: var(--color-text-muted); font-size: 0.8rem; margin-top: 0.6rem; }
+    .field-selfie .err { color: var(--color-danger); font-size: 0.8rem; margin-top: 0.4rem; display: none; }
+    .field-selfie.invalid .err { display: block; }
+
+    /* ---------- Submit + status ---------- */
+    .btn-submit {
+      width: 100%; margin-top: 1.6rem; padding: 1rem 1.2rem;
+      background: var(--color-accent); color: #0A0A0A;
+      font-family: var(--font-heading); font-weight: 700; font-size: 1.05rem;
+      border: none; border-radius: 11px; cursor: pointer; transition: background 150ms ease;
+    }
+    .btn-submit:hover { background: var(--color-accent-hover); }
+    .btn-submit:disabled { opacity: 0.6; cursor: default; }
+
+    .status { margin-top: 1.4rem; border-radius: var(--radius); padding: 1.5rem; text-align: center; display: none; }
+    .status.show { display: block; }
+    .status.loading { background: var(--color-bg-card); border: 1px solid var(--color-border); }
+    .status.success { background: rgba(87, 211, 140, 0.08); border: 1px solid rgba(87, 211, 140, 0.35); }
+    .status.error { background: rgba(255, 107, 107, 0.08); border: 1px solid rgba(255, 107, 107, 0.35); }
+    .status h3 { font-family: var(--font-heading); font-size: 1.3rem; margin-bottom: 0.4rem; }
+    .status p { color: var(--color-text-secondary); font-size: 0.95rem; }
+    .status .status-icon { width: 52px; height: 52px; margin: 0 auto 0.8rem; }
+    .status.success .status-icon { color: var(--color-success); }
+    .status.error .status-icon { color: var(--color-danger); }
+    .spinner {
+      width: 40px; height: 40px; margin: 0 auto 0.9rem; border-radius: 50%;
+      border: 3px solid var(--color-border); border-top-color: var(--color-accent);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .btn-retry {
+      margin-top: 1rem; padding: 0.7rem 1.4rem; background: transparent;
+      border: 1px solid var(--color-border-hover); border-radius: 9px;
+      color: var(--color-text-primary); font: inherit; font-weight: 500; cursor: pointer;
+    }
+
+    .footer-note { color: var(--color-text-muted); font-size: 0.8rem; text-align: center; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand">Fit&nbsp;Pit<span class="dot">.</span></div>
+    <h1 class="page-title">Day Pass Waiver</h1>
+    <p class="page-intro">Welcome to Fit Pit! Because a day pass gives you full use of our gym, we ask every visitor to read and sign this short waiver before their first workout. Please read it carefully — by signing, you agree to the terms below.</p>
+
+    <!-- ==================== Waiver text ==================== -->
+    <section class="waiver" id="waiver-text" tabindex="0" aria-label="Day Pass waiver terms">
+      <h2>Day Pass Visitor Waiver &amp; Liability Release</h2>
+      <p class="waiver-sub">Fit Pit Zanzibar · Zanzibar Sporting Club, Cairo/Kiwengwa</p>
+
+      <h3>1. Health &amp; Fitness Declaration</h3>
+      <ul>
+        <li>I confirm that I am in good general health and able to take part in physical exercise.</li>
+        <li>I am not aware of any medical condition, injury, pregnancy, or other reason that makes it unsafe for me to exercise. If I am in any doubt, I understand I should consult a doctor first, and that I take part <strong>at my own risk</strong>.</li>
+        <li>I will stop exercising and tell a member of staff if I feel unwell at any point during my visit.</li>
+        <li>I confirm that I am at least <strong>17 years old</strong>, the minimum age for entry to Fit Pit.</li>
+      </ul>
+
+      <h3>2. Assumption of Risk &amp; Release of Liability</h3>
+      <ul>
+        <li>I understand that using gym equipment and taking part in exercise, fitness classes, or personal training carries <strong>inherent risks</strong>, including the risk of injury.</li>
+        <li>I take part voluntarily and accept full responsibility for these risks.</li>
+        <li>To the fullest extent permitted by law, I release Fit Pit Zanzibar, its owners, staff, and trainers from any liability for injury, accident, loss, or health issue arising from my use of the facilities or participation in any activity — except to the extent it is caused by the gross negligence or wilful misconduct of Fit Pit or its staff.</li>
+        <li>Fit Pit is not responsible for loss of, or damage to, personal belongings brought onto the premises.</li>
+      </ul>
+
+      <h3>3. Gym Rules &amp; Conduct</h3>
+      <p>I agree to follow these rules and any reasonable instruction given by staff:</p>
+      <ul>
+        <li><strong>Attire:</strong> Only proper gym wear with athletic trainers is permitted. Flip-flops, sandals, and beachwear are not allowed.</li>
+        <li><strong>Equipment:</strong> Re-rack weights and return equipment after use. I am liable for the cost of any damage I cause through inappropriate use of equipment.</li>
+        <li><strong>Lockers &amp; belongings:</strong> Store personal items in the lockers provided. A $10 USD fee applies for a lost locker key. Fit Pit is not liable for items left in lockers.</li>
+        <li><strong>Food &amp; drink:</strong> Only bottled water or sports drinks are allowed in the gym. Please dispose of any litter appropriately.</li>
+        <li><strong>Photography:</strong> Progress selfies are welcome, but please don't film or photograph other members without their consent. Commercial photography needs prior permission.</li>
+        <li><strong>Respect:</strong> Treat other members and staff with courtesy at all times. Harassment, discrimination, or disrespectful behaviour will not be tolerated and may result in being asked to leave without a refund.</li>
+        <li><strong>Music:</strong> Gym music is set by Fit Pit; please use personal earphones if you'd prefer something different.</li>
+      </ul>
+
+      <h3>4. Day Pass Terms</h3>
+      <ul>
+        <li>A day pass is valid for a single day's entry and is <strong>non-transferable</strong>.</li>
+        <li>Day pass fees are <strong>non-refundable</strong>, and day pass prices may change at any time.</li>
+      </ul>
+
+      <h3>5. CCTV &amp; Privacy</h3>
+      <ul>
+        <li>All areas of the gym (except locker rooms and washrooms) are under CCTV surveillance for the safety of everyone in the gym. Management may review footage in the event of misconduct.</li>
+        <li>Fit Pit will keep your details private and will not share them with any third party without your consent, unless required by law. Your information is used only in connection with your visit and, if needed, to contact you or your emergency contact.</li>
+        <li>You may be asked to show photo ID at reception.</li>
+      </ul>
+
+      <h3>6. Local Conditions</h3>
+      <ul>
+        <li><strong>Power outages</strong> are common in Zanzibar and beyond our control, despite the generators, UPS systems, and stabilisers we have in place. Fit Pit cannot be held responsible for any inconvenience, injury, or disruption caused by power fluctuations or outages.</li>
+      </ul>
+    </section>
+
+    <!-- ==================== Form ==================== -->
+    <form id="waiver-form" novalidate>
+      <div class="section-label">Your details</div>
+
+      <div class="field">
+        <label for="full_name">Full name <span class="req">*</span></label>
+        <input type="text" id="full_name" name="full_name" autocomplete="name" placeholder="e.g. Jane Smith" required />
+        <div class="err">Please enter your full name.</div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="contact_number">Contact number <span class="req">*</span></label>
+          <input type="tel" id="contact_number" name="contact_number" autocomplete="tel" inputmode="tel" placeholder="e.g. +255 779 630 403" required />
+          <div class="err">Please enter a contact number.</div>
+        </div>
+        <div class="field">
+          <label for="email">Email <span class="hint">(optional)</span></label>
+          <input type="email" id="email" name="email" autocomplete="email" inputmode="email" placeholder="you@example.com" />
+          <div class="err">Please enter a valid email, or leave it blank.</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label for="emergency_contact_name">Emergency contact name <span class="hint">(optional)</span></label>
+          <input type="text" id="emergency_contact_name" name="emergency_contact_name" placeholder="e.g. John Smith" />
+          <div class="err"></div>
+        </div>
+        <div class="field">
+          <label for="emergency_contact_number">Emergency contact number <span class="hint">(optional)</span></label>
+          <input type="tel" id="emergency_contact_number" name="emergency_contact_number" inputmode="tel" placeholder="Who should we call in an emergency?" />
+          <div class="err"></div>
+        </div>
+      </div>
+
+      <div class="field" style="max-width: 260px;">
+        <label for="visit_date">Date of visit <span class="hint">(optional)</span></label>
+        <input type="date" id="visit_date" name="visit_date" />
+        <div class="err"></div>
+      </div>
+
+      <div class="section-label">Declarations</div>
+
+      <label class="declare" id="declare-health">
+        <input type="checkbox" id="health_declaration" name="health_declaration" required />
+        <span><strong>Health &amp; age:</strong> I confirm the health and fitness declaration in section&nbsp;1 is true, and that I am at least 17 years old.</span>
+      </label>
+
+      <label class="declare" id="declare-consent">
+        <input type="checkbox" id="consent" name="consent" required />
+        <span><strong>Waiver:</strong> I have read and agree to this waiver, the release of liability, and the gym rules set out above.</span>
+      </label>
+
+      <div class="section-label">Photo <span class="req">*</span></div>
+
+      <div class="field-selfie" id="field-selfie">
+        <p class="selfie-help">Please take a quick selfie so our team can match this waiver to you at the gym.</p>
+
+        <div class="selfie-stage">
+          <!-- Idle: prompt to start -->
+          <div class="selfie-idle" id="selfie-idle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="selfie-cam-icon"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <button type="button" class="btn-photo" id="btn-take-photo">📸 Take Photo</button>
+          </div>
+
+          <!-- Live camera -->
+          <div class="selfie-live" id="selfie-live" hidden>
+            <video id="selfie-video" playsinline autoplay muted></video>
+            <div class="selfie-actions">
+              <button type="button" class="btn-photo" id="btn-capture">Capture</button>
+              <button type="button" class="btn-photo-alt" id="btn-cancel-camera">Cancel</button>
+            </div>
+          </div>
+
+          <!-- Captured preview -->
+          <div class="selfie-result" id="selfie-result" hidden>
+            <img id="selfie-img" alt="Your selfie" />
+            <button type="button" class="btn-photo-alt" id="btn-retake">↻ Retake</button>
+          </div>
+        </div>
+
+        <!-- Fallback: native camera via file input (used if live camera is unavailable) -->
+        <input type="file" id="selfie-file" accept="image/*" capture="user" hidden />
+        <div class="err">Please take a photo.</div>
+      </div>
+
+      <div class="section-label">Signature</div>
+
+      <div class="field-sig" id="field-sig">
+        <div class="sig-tabs" role="tablist">
+          <button type="button" class="sig-tab active" id="tab-draw" role="tab" aria-selected="true">✍️ Draw</button>
+          <button type="button" class="sig-tab" id="tab-type" role="tab" aria-selected="false">⌨️ Type</button>
+        </div>
+
+        <div class="sig-panel active" id="panel-draw" role="tabpanel">
+          <div class="canvas-wrap">
+            <canvas id="signature-canvas" aria-label="Signature drawing area"></canvas>
+            <button type="button" class="btn-clear" id="btn-clear-sig">Clear</button>
+          </div>
+          <p class="sig-caption">Sign above with your finger or mouse.</p>
+        </div>
+
+        <div class="sig-panel" id="panel-type" role="tabpanel">
+          <input type="text" id="signature-typed" placeholder="Type your full name" autocomplete="off" />
+          <p class="sig-caption">Your typed name will be used as your signature.</p>
+        </div>
+
+        <div class="err">Please provide your signature.</div>
+      </div>
+
+      <p class="sign-meta">Signed on <strong id="sign-date">—</strong></p>
+
+      <button type="submit" class="btn-submit" id="btn-submit">Agree &amp; Submit Waiver</button>
+    </form>
+
+    <!-- ==================== Status ==================== -->
+    <div class="status loading" id="status-loading">
+      <div class="spinner"></div>
+      <p>Submitting your waiver…</p>
+    </div>
+
+    <div class="status success" id="status-success">
+      <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <h3>You're all set!</h3>
+      <p>Thanks — your waiver has been received. Please show this screen to reception, and enjoy your workout at Fit Pit!</p>
+    </div>
+
+    <div class="status error" id="status-error">
+      <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <h3>Something went wrong</h3>
+      <p id="error-text">We couldn't submit your waiver. Please try again, or ask a member of staff for help.</p>
+      <button type="button" class="btn-retry" id="btn-retry">Try again</button>
+    </div>
+
+    <p class="footer-note">Fit Pit Zanzibar · Your details are kept private and used only for your gym visit.</p>
+  </main>
+
+  <script type="module" src="/daypass-waiver.js"></script>
+</body>
+</html>

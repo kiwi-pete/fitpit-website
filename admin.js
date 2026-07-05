@@ -4,6 +4,7 @@
 
 import { initAnalytics } from './dashboard.js';
 import { initClassAdmin } from './classadmin.js';
+import { initWaivers } from './waiversadmin.js';
 
 const BUILTIN_PIN = '2026';
 
@@ -17,6 +18,8 @@ const tabs = document.getElementById('tabs');
 let unlocked = false;
 let analyticsInit = false;
 let contentInit = false;
+let waiversInit = false;
+let currentPin = '';
 
 // Load the live site (in edit mode) into the Website Content iframe. The iframe
 // is same-origin, so it shares this session's admin PIN from sessionStorage and
@@ -49,6 +52,7 @@ async function verify(pin) {
 function unlock(pin) {
   if (unlocked) return;
   unlocked = true;
+  currentPin = pin;
   try {
     sessionStorage.setItem('fp_admin_pin', pin);
     // Mark this device as an admin device (durable cookie + localStorage).
@@ -92,6 +96,7 @@ tabs.addEventListener('click', (e) => {
   document.getElementById('tab-classes').hidden = tab !== 'classes';
   document.getElementById('tab-content').hidden = tab !== 'content';
   document.getElementById('tab-analytics').hidden = tab !== 'analytics';
+  document.getElementById('tab-waivers').hidden = tab !== 'waivers';
   if (tab === 'analytics' && !analyticsInit) {
     analyticsInit = true;
     initAnalytics();
@@ -99,6 +104,10 @@ tabs.addEventListener('click', (e) => {
   if (tab === 'content' && !contentInit) {
     contentInit = true;
     initContentTab();
+  }
+  if (tab === 'waivers' && !waiversInit) {
+    waiversInit = true;
+    initWaivers({ pin: currentPin });
   }
 });
 

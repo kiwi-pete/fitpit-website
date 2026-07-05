@@ -3,7 +3,8 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "rewrites": [
-    { "source": "/secretadminlink", "destination": "/secretadminlink.html" }
+    { "source": "/secretadminlink", "destination": "/secretadminlink.html" },
+    { "source": "/daypass-waiver", "destination": "/daypass-waiver.html" }
   ],
   "headers": [
     {
@@ -14,6 +15,18 @@
     },
     {
       "source": "/secretadminlink.html",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/daypass-waiver",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    },
+    {
+      "source": "/daypass-waiver.html",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
       ]
