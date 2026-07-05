@@ -7,5 +7,3 @@ User-agent: *
 Allow: /
 Disallow: /secretadminlink
 Disallow: /secretadminlink.html
-Disallow: /daypass-waiver
-Disallow: /daypass-waiver.html
