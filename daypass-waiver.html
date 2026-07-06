@@ -186,6 +186,8 @@
     }
     .field-selfie.invalid .selfie-stage { border-color: var(--color-danger); }
     .selfie-idle { display: flex; flex-direction: column; align-items: center; gap: 0.9rem; padding: 0.6rem 0; }
+    /* the [hidden] attribute must win over the display rules above/below */
+    .selfie-idle[hidden], .selfie-live[hidden], .selfie-result[hidden] { display: none; }
     .selfie-cam-icon { width: 44px; height: 44px; color: var(--color-text-muted); }
     .btn-photo {
       background: var(--color-accent); color: #0A0A0A;
@@ -377,7 +379,7 @@
           <div class="selfie-live" id="selfie-live" hidden>
             <video id="selfie-video" playsinline autoplay muted></video>
             <div class="selfie-actions">
-              <button type="button" class="btn-photo" id="btn-capture">Capture</button>
+              <button type="button" class="btn-photo" id="btn-capture">📸 Take Photo</button>
               <button type="button" class="btn-photo-alt" id="btn-cancel-camera">Cancel</button>
             </div>
           </div>
