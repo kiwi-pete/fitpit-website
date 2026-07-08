@@ -274,10 +274,11 @@ function validate() {
   const fullName = document.getElementById('full_name');
   const contact = document.getElementById('contact_number');
   const email = document.getElementById('email');
+  const visitDate = document.getElementById('visit_date');
   const health = document.getElementById('health_declaration');
   const consent = document.getElementById('consent');
 
-  [fullName, contact, email].forEach((el) => setInvalid(el.closest('.field'), false));
+  [fullName, contact, email, visitDate].forEach((el) => setInvalid(el.closest('.field'), false));
   document.getElementById('declare-health').classList.remove('invalid');
   document.getElementById('declare-consent').classList.remove('invalid');
   fieldSelfie.classList.remove('invalid');
@@ -286,6 +287,7 @@ function validate() {
   if (!fullName.value.trim()) fail(fullName.closest('.field'));
   if (!contact.value.trim()) fail(contact.closest('.field'));
   if (email.value.trim() && !emailRe.test(email.value.trim())) fail(email.closest('.field'));
+  if (!visitDate.value.trim()) fail(visitDate.closest('.field'));
   if (!health.checked) fail(document.getElementById('declare-health'));
   if (!consent.checked) fail(document.getElementById('declare-consent'));
   if (!selfieDataUrl) fail(fieldSelfie);
@@ -337,8 +339,6 @@ form.addEventListener('submit', async (e) => {
   const payload = {
     full_name: (fd.get('full_name') || '').toString().trim(),
     contact_number: (fd.get('contact_number') || '').toString().trim(),
-    emergency_contact_name: (fd.get('emergency_contact_name') || '').toString().trim(),
-    emergency_contact_number: (fd.get('emergency_contact_number') || '').toString().trim(),
     email: (fd.get('email') || '').toString().trim(),
     visit_date: (fd.get('visit_date') || '').toString().trim(),
     health_declaration: document.getElementById('health_declaration').checked,
