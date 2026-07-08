@@ -332,23 +332,10 @@
         </div>
       </div>
 
-      <div class="grid2">
-        <div class="field">
-          <label for="emergency_contact_name">Emergency contact name <span class="hint">(optional)</span></label>
-          <input type="text" id="emergency_contact_name" name="emergency_contact_name" placeholder="e.g. John Smith" />
-          <div class="err"></div>
-        </div>
-        <div class="field">
-          <label for="emergency_contact_number">Emergency contact number <span class="hint">(optional)</span></label>
-          <input type="tel" id="emergency_contact_number" name="emergency_contact_number" inputmode="tel" placeholder="Who should we call in an emergency?" />
-          <div class="err"></div>
-        </div>
-      </div>
-
       <div class="field" style="max-width: 260px;">
-        <label for="visit_date">Date of visit <span class="hint">(optional)</span></label>
-        <input type="date" id="visit_date" name="visit_date" />
-        <div class="err"></div>
+        <label for="visit_date">Date of visit <span class="req">*</span></label>
+        <input type="date" id="visit_date" name="visit_date" required />
+        <div class="err">Please enter your date of visit.</div>
       </div>
 
       <div class="section-label">Declarations</div>
