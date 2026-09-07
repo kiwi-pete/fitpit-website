@@ -690,6 +690,10 @@ td.converted-pos { color: var(--teal-dark); font-weight: 800; }
 .ca-slot-reg.has { background: var(--teal-soft); color: var(--teal-dark); border-color: #b9e9e6; }
 .ca-slot-reg:hover { border-color: var(--teal); }
 .ca-slot-hint { margin-top: 5px; font-size: 0.68rem; color: #aab6bf; font-style: italic; }
+/* A class scheduled in the Gym Manager app: shown here so the timetable is
+   complete, but read-only — the app owns it. */
+.ca-slot-app { background: #fbfcfd; border-style: dashed; }
+.ca-slot-src { margin-top: 5px; font-size: 0.66rem; color: #8f9ba5; letter-spacing: 0.02em; }
 .ca-names { margin-top: 6px; padding: 8px 10px; background: #f4f6f9; border-radius: 8px; font-size: 0.78rem; }
 .ca-names-head { font-weight: 800; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 4px; }
 .ca-names-empty { color: var(--ink-soft); font-style: italic; padding: 3px 0; }
