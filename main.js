@@ -1539,12 +1539,19 @@ function csSubmitReg(reg) {
   fetch('/api/classes')
     .then((r) => (r.ok ? r.json() : null))
     .then((data) => {
-      if (!data || !Array.isArray(data.schedule) || !data.schedule.length) return;
+      if (!data) return;
+      // The timetable is the union of the site's own entries and classes
+      // scheduled in the Gym Manager app (`external`) — both end up as real
+      // classes with real sign-ups, so the site shows both.
+      const entries = (Array.isArray(data.schedule) ? data.schedule : []).concat(
+        Array.isArray(data.external) ? data.external : []
+      );
+      if (!entries.length) return;
       const tById = {};
       (data.templates || []).forEach((t) => (tById[t.id] = t));
 
       const byDate = {};
-      data.schedule.forEach((e) => {
+      entries.forEach((e) => {
         if (!e || typeof e.date !== 'string') return;
         (byDate[e.date] = byDate[e.date] || []).push(e);
       });
@@ -1582,7 +1589,7 @@ function csSubmitReg(reg) {
             <div class="tt-class-body">
               <div class="tt-class-time">${csEsc(csFmt(e.start_time))}${e.end_time ? ' – ' + csEsc(csFmt(e.end_time)) : ''}</div>
               <div class="tt-class-name">${csEsc(e.name)}</div>
-              ${t.instructor ? `<div class="tt-class-trainer">${csEsc(t.instructor)}</div>` : ''}
+              ${e.instructor || t.instructor ? `<div class="tt-class-trainer">${csEsc(e.instructor || t.instructor)}</div>` : ''}
               ${csRegHTML(e)}
             </div>
           </div>`;
@@ -1638,7 +1645,8 @@ if (!FP_EDIT_MODE) (function initClassTileSessions() {
         const today = csTodayIso();
         const tById = {};
         ((data && data.templates) || []).forEach((t) => (tById[t.id] = t));
-        const matches = ((data && data.schedule) || [])
+        const all = ((data && data.schedule) || []).concat((data && data.external) || []);
+        const matches = all
           .filter((e) => e && e.date && e.date >= today && norm(e.name) === norm(name))
           .sort((a, b) => (a.date + (a.start_time || '')).localeCompare(b.date + (b.start_time || '')))
           .slice(0, 2);
@@ -1669,7 +1677,7 @@ if (!FP_EDIT_MODE) (function initClassTileSessions() {
             <span class="cs-day">${csEsc(dayName)}</span>
             <span class="cs-date">${csEsc(dayDate)}</span>
             <span class="cs-time">${csEsc(timeStr)}</span>
-            ${t.instructor ? `<span class="cs-trainer">${csEsc(t.instructor)}</span>` : ''}
+            ${e.instructor || t.instructor ? `<span class="cs-trainer">${csEsc(e.instructor || t.instructor)}</span>` : ''}
           </div>
           ${csRegHTML(e) || '<span class="tt-spaces">Registration opens nearer the time</span>'}
         </div>`;

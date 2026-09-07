@@ -58,7 +58,9 @@ const fmtTime = (t) => {
   return `${h12}:${String(m).padStart(2, '0')}${ap}`;
 };
 
-const state = { pin: '2026', templates: [], schedule: [], dirty: false, editingId: null, loaded: false, showPast: false };
+// `external` holds classes scheduled in the Gym Manager app. They are shown here
+// read-only (the app owns them) so the timetable you see matches the website.
+const state = { pin: '2026', templates: [], schedule: [], external: [], dirty: false, editingId: null, loaded: false, showPast: false };
 
 let elStatus, elTemplates, elGrid, elSave;
 
@@ -112,6 +114,7 @@ async function loadData() {
     }
     state.templates = Array.isArray(data.templates) ? data.templates : [];
     state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
+    state.external = Array.isArray(data.external) ? data.external : [];
     state.loaded = true;
   } catch (err) {
     // Crucial: do NOT replace your saved data with an empty list on a failed
@@ -346,7 +349,7 @@ function downscale(file, maxDim, quality) {
 
 function renderWeeks() {
   elGrid.innerHTML = '';
-  if (!state.templates.length) {
+  if (!state.templates.length && !state.external.length) {
     elGrid.append(el('div', 'empty', 'Add a class type first, then place it on the days it runs.'));
     return;
   }
@@ -358,7 +361,7 @@ function renderWeeks() {
   // they have entries.
   const upcoming = new Set([curMon]);
   const past = new Set();
-  state.schedule.forEach((e) => {
+  state.schedule.concat(state.external).forEach((e) => {
     const m = mondayOf(e.date);
     if (m >= curMon) upcoming.add(m);
     else if (m >= pastFloor) past.add(m);
@@ -409,12 +412,14 @@ function buildWeek(wkMon, today, isCurrent) {
     );
     const list = el('div', 'ca-day-list');
     const entries = state.schedule
+      .concat(state.external)
       .filter((e) => e.date === dayIso)
       .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
     if (!entries.length) list.append(el('div', 'ca-day-empty', '—'));
     entries.forEach((e) => {
+      const fromApp = e.source === 'app';
       const tpl = state.templates.find((t) => t.id === e.templateId);
-      const chip = el('div', 'ca-slot');
+      const chip = el('div', 'ca-slot' + (fromApp ? ' ca-slot-app' : ''));
       chip.style.borderLeftColor = (tpl && tpl.color) || '#8B7BF7';
       chip.append(
         el('div', 'ca-slot-name', esc(e.name)),
@@ -429,14 +434,22 @@ function buildWeek(wkMon, today, isCurrent) {
       } else if (state.dirty) {
         chip.append(el('div', 'ca-slot-hint', 'Save to enable sign-ups'));
       }
-      const x = el('button', 'ca-slot-x', '×');
-      x.title = 'Delete this class';
-      x.onclick = () => {
-        if (!confirm('Are you sure you want to delete this class?')) return;
-        state.schedule = state.schedule.filter((z) => z !== e);
-        markDirty();
-      };
-      chip.append(x);
+      if (fromApp) {
+        // Owned by the Gym Manager app — editing it here would fight the app's
+        // recurring series, so it is shown, and bookable, but not editable.
+        const tag = el('div', 'ca-slot-src', 'From Gym Manager app');
+        tag.title = 'Scheduled in the Gym Manager app — edit or delete it there';
+        chip.append(tag);
+      } else {
+        const x = el('button', 'ca-slot-x', '×');
+        x.title = 'Delete this class';
+        x.onclick = () => {
+          if (!confirm('Are you sure you want to delete this class?')) return;
+          state.schedule = state.schedule.filter((z) => z !== e);
+          markDirty();
+        };
+        chip.append(x);
+      }
       list.append(chip);
     });
     col.append(list, buildAddSlot(dayIso));
@@ -704,6 +717,7 @@ async function save() {
     // POST returns the enriched schedule (class ids + live counts).
     state.templates = data.templates || state.templates;
     state.schedule = data.schedule || state.schedule;
+    if (Array.isArray(data.external)) state.external = data.external;
     state.dirty = false;
     renderAll();
     const m = data.materialised;

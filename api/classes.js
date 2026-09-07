@@ -42,6 +42,9 @@ const dateRe = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
 const str = (v, n = 200) => (typeof v === 'string' && v.length ? v.slice(0, n) : null);
 const reqTime = (v) => (typeof v === 'string' && timeRe.test(v) ? v : null);
 const withSecs = (t) => (t && t.length === 5 ? `${t}:00` : t); // 'HH:MM' -> 'HH:MM:00'
+const hhmm = (t) => (typeof t === 'string' && t.length >= 5 ? t.slice(0, 5) : null); // 'HH:MM:SS' -> 'HH:MM'
+// Loose name match, so "Next Level" and '"Next Level"' are the same class type.
+const normName = (s) => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]+/g, '');
 // public.classes.end_time is NOT NULL, so derive a sensible end (+1h) when none.
 function resolveEnd(start, end) {
   if (end) return withSecs(end);
@@ -101,6 +104,17 @@ function isoDaysAgo(n) {
   return d.toISOString().slice(0, 10);
 }
 
+// Live registration count per class id (cancellations don't take a space).
+async function countRegistrations(classIds) {
+  const counts = {};
+  if (!classIds.length) return counts;
+  const regs = await sb(`class_registrations?class_id=in.${inList(classIds)}&select=class_id,status`);
+  (regs || []).forEach((r) => {
+    if ((r.status || 'registered') !== 'cancelled') counts[r.class_id] = (counts[r.class_id] || 0) + 1;
+  });
+  return counts;
+}
+
 // Attach the materialised classes.id + capacity + registration count to each
 // entry, so the site can show "spaces left" and register against the right
 // class. Registrant NAMES are never returned here — only counts. lookbackDays
@@ -117,19 +131,57 @@ async function enrichSchedule(schedule, lookbackDays = 0) {
   const byKey = {};
   rows.forEach((r) => (byKey[`${r.recurrence_group_id}|${r.date}`] = r));
 
-  const counts = {};
-  const classIds = rows.map((r) => r.id);
-  if (classIds.length) {
-    const regs = await sb(`class_registrations?class_id=in.${inList(classIds)}&select=class_id,status`);
-    (regs || []).forEach((r) => {
-      if ((r.status || 'registered') !== 'cancelled') counts[r.class_id] = (counts[r.class_id] || 0) + 1;
-    });
-  }
+  const counts = await countRegistrations(rows.map((r) => r.id));
 
   return schedule.map((e) => {
     const row = byKey[`${e.recurrence_group_id}|${e.date}`];
     if (!row) return { ...e };
     return { ...e, classId: row.id, capacity: row.max_capacity != null ? row.max_capacity : 12, registered: counts[row.id] || 0 };
+  });
+}
+
+// Classes scheduled in the Gym Manager ops app rather than in this site's own
+// timetable editor. They exist only as public.classes rows, so without this the
+// website never sees them and the timetable looks empty even though the gym has
+// a full schedule.
+//
+// They are returned SEPARATELY from `schedule` and are never written back by the
+// admin save: an app recurring series shares ONE recurrence_group_id across many
+// dates, whereas materialise() treats a group as a single class and would prune
+// the series down to one row. The app owns these rows; the site only reads them.
+async function readAppClasses(ownGids, templates, lookbackDays = 0) {
+  const floor = isoDaysAgo(lookbackDays);
+  const rows = await sb(
+    `classes?date=gte.${floor}` +
+      `&select=id,name,description,instructor,date,start_time,end_time,max_capacity,recurrence_group_id` +
+      `&order=date.asc,start_time.asc`
+  );
+  const own = new Set((ownGids || []).filter((g) => uuidRe.test(g)));
+  const mine = (rows || []).filter((r) => !(r.recurrence_group_id && own.has(r.recurrence_group_id)));
+  if (!mine.length) return [];
+
+  // Match to a class type by name so the site can reuse its colour and photo.
+  const byName = {};
+  (templates || []).forEach((t) => (byName[normName(t.name)] = t));
+  const counts = await countRegistrations(mine.map((r) => r.id));
+
+  return mine.map((r) => {
+    const tmpl = byName[normName(r.name)];
+    return {
+      id: r.id,
+      date: r.date,
+      templateId: tmpl ? tmpl.id : null,
+      name: r.name || 'Class',
+      description: r.description || null,
+      instructor: r.instructor || null,
+      start_time: hhmm(r.start_time),
+      end_time: hhmm(r.end_time),
+      recurrence_group_id: r.recurrence_group_id || null,
+      classId: r.id,
+      capacity: r.max_capacity != null ? r.max_capacity : 12,
+      registered: counts[r.id] || 0,
+      source: 'app',
+    };
   });
 }
 
@@ -231,15 +283,20 @@ async function materialise(entries, templates, retiredGroupIds) {
 
 export default async function handler(req, res) {
   if (req.method === 'GET') {
-    if (!SERVICE_KEY) return res.status(200).json({ configured: false, templates: [], schedule: [] });
+    if (!SERVICE_KEY) return res.status(200).json({ configured: false, templates: [], schedule: [], external: [] });
     try {
       const { templates, schedule } = await readSettings();
       const lookback = req.query && req.query.history ? HISTORY_DAYS : 0;
       const enriched = await enrichSchedule(schedule, lookback);
+      const external = await readAppClasses(
+        schedule.map((e) => e.recurrence_group_id),
+        templates,
+        lookback
+      );
       // No caching: "spaces left" must reflect registrations in real time across
       // browsers/devices.
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).json({ configured: true, templates, schedule: enriched });
+      return res.status(200).json({ configured: true, templates, schedule: enriched, external });
     } catch (err) {
       console.error('classes GET error:', err);
       return res.status(500).json({ error: 'read_failed', message: String(err.message || err) });
@@ -306,7 +363,13 @@ export default async function handler(req, res) {
     } catch (e) {
       /* counts are optional; the save itself already succeeded */
     }
-    return res.status(200).json({ ok: true, templates, schedule: enriched, materialised });
+    let external = [];
+    try {
+      external = await readAppClasses(schedule.map((e) => e.recurrence_group_id), templates, HISTORY_DAYS);
+    } catch (e) {
+      /* app-owned classes are read-only extras; the save itself already succeeded */
+    }
+    return res.status(200).json({ ok: true, templates, schedule: enriched, external, materialised });
   } catch (err) {
     console.error('classes POST error:', err);
     return res.status(500).json({ error: 'save_failed', message: String(err.message || err) });
