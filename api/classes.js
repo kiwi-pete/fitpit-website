@@ -293,10 +293,27 @@ export default async function handler(req, res) {
         templates,
         lookback
       );
-      // No caching: "spaces left" must reflect registrations in real time across
+      // The public never gets enrolment numbers — the owner doesn't want turnout
+      // visible on the site, and anything in this payload is readable by anyone
+      // who opens dev tools, so hiding it in the page alone isn't enough. Visitors
+      // get only `full` (to show "Class full" instead of Register); the class
+      // admin sends its PIN and keeps the real counts.
+      const pin = req.headers['x-admin-pin'];
+      const isAdmin = pin != null && String(pin) === ADMIN_PIN;
+      const forPublic = (e) => {
+        if (isAdmin || !e.classId) return e;
+        const { registered, capacity, ...rest } = e;
+        return { ...rest, full: (registered || 0) >= (capacity != null ? capacity : 12) };
+      };
+      // No caching: "Class full" must reflect registrations in real time across
       // browsers/devices.
       res.setHeader('Cache-Control', 'no-store');
-      return res.status(200).json({ configured: true, templates, schedule: enriched, external });
+      return res.status(200).json({
+        configured: true,
+        templates,
+        schedule: enriched.map(forPublic),
+        external: external.map(forPublic),
+      });
     } catch (err) {
       console.error('classes GET error:', err);
       return res.status(500).json({ error: 'read_failed', message: String(err.message || err) });

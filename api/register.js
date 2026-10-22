@@ -138,12 +138,16 @@ export default async function handler(req, res) {
     const regs = await sb(`class_registrations?class_id=eq.${classId}&select=guest_name,status`);
     const current = (regs || []).filter(active);
 
+    // Enrolment numbers go to the class admin only; the public site never shows
+    // turnout, so a visitor's response carries no counts.
+    const counts = (n) => (isAdmin ? { registered: n, spaces: Math.max(0, cap - n) } : {});
+
     // Already on the list (same name) — treat as success, don't double-add.
     if (current.some((r) => (r.guest_name || '').trim().toLowerCase() === cleanName.toLowerCase())) {
-      return res.status(200).json({ ok: true, already: true, registered: current.length, spaces: Math.max(0, cap - current.length) });
+      return res.status(200).json({ ok: true, already: true, ...counts(current.length) });
     }
     if (!isAdmin && current.length >= cap) {
-      return res.status(409).json({ error: 'full', message: 'Sorry, this class is full.', registered: current.length, spaces: 0 });
+      return res.status(409).json({ error: 'full', message: 'Sorry, this class is full.' });
     }
 
     await sb('class_registrations', {
@@ -151,7 +155,7 @@ export default async function handler(req, res) {
       body: [{ class_id: classId, guest_name: cleanName, registered_by: isAdmin ? 'admin' : 'website', status: 'registered' }],
     });
     const newCount = current.length + 1;
-    return res.status(200).json({ ok: true, registered: newCount, spaces: Math.max(0, cap - newCount) });
+    return res.status(200).json({ ok: true, ...counts(newCount) });
   } catch (err) {
     console.error('register POST error:', err);
     return res.status(500).json({ error: 'register_failed', message: String(err.message || err) });

@@ -104,7 +104,9 @@ function status(msg, kind) {
 async function loadData() {
   status('Loading…', 'info');
   try {
-    const res = await fetch('/api/classes?t=' + Date.now() + '&history=1'); // always fresh; include recent past
+    // always fresh; include recent past. The PIN unlocks the registration counts,
+    // which the public GET leaves out.
+    const res = await fetch('/api/classes?t=' + Date.now() + '&history=1', { headers: { 'x-admin-pin': state.pin } });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.configured === false) {

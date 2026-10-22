@@ -1453,23 +1453,16 @@ function csTodayIso() {
   catch { return new Date().toISOString().slice(0, 10); }
 }
 
-// Public availability label. We deliberately cap the displayed number at "5+"
-// so quiet classes don't broadcast low turnout — exact numbers only show once
-// it's genuinely filling up (4 or fewer left). The admin still sees real counts.
-function csSpacesLabel(n) {
-  if (n >= 5) return '5+ spaces left';
-  return `${n} space${n === 1 ? '' : 's'} left`;
-}
-
-// "spaces left + Register" (or "Class full") block for one schedule entry.
+// "Register" (or "Class full") block for one schedule entry. No availability
+// number is shown at all: the owner doesn't want turnout visible on the public
+// site (even the old capped "5+ spaces left" hinted at it), and /api/classes no
+// longer sends counts to visitors — only `full`.
 function csRegHTML(e) {
   if (!e || !e.classId) return '';
-  const cap = e.capacity != null ? e.capacity : 12;
-  const spaces = Math.max(0, cap - (e.registered || 0));
   return `<div class="tt-class-reg" data-classid="${csEsc(e.classId)}">${
-    spaces > 0
-      ? `<span class="tt-spaces">${csSpacesLabel(spaces)}</span><button type="button" class="tt-register-btn">Register</button>`
-      : `<span class="tt-spaces full">Class full</span>`
+    e.full
+      ? `<span class="tt-spaces full">Class full</span>`
+      : `<button type="button" class="tt-register-btn">Register</button>`
   }</div>`;
 }
 
@@ -1512,8 +1505,7 @@ function csSubmitReg(reg) {
     .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
     .then(({ ok, d }) => {
       if (ok && d.ok) {
-        const left = typeof d.spaces === 'number' ? ` · ${d.spaces >= 5 ? '5+' : d.spaces} left` : '';
-        reg.innerHTML = `<span class="tt-reg-done">✓ ${d.already ? "You're already on the list" : "You're booked in"}</span><span class="tt-spaces">${csEsc(name)}${left}</span>`;
+        reg.innerHTML = `<span class="tt-reg-done">✓ ${d.already ? "You're already on the list" : "You're booked in"}</span><span class="tt-spaces">${csEsc(name)}</span>`;
       } else {
         const msg = (d && d.message) || 'Could not register — please try again.';
         reg.innerHTML = `<span class="tt-spaces full">${csEsc(msg)}</span>` + (reg.dataset.orig != null ? '<button type="button" class="tt-register-btn">Try again</button>' : '');
