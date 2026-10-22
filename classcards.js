@@ -22,12 +22,14 @@ export const DEFAULT_CLASS_ICON = 'dumbbell';
 // Defaults MUST mirror the hardcoded tiles in index.html (they are the fallback
 // shown when no override is saved and the seed the editor starts from).
 export const DEFAULT_CLASS_CARDS = [
-  { id: 'hiit', icon: 'bolt', name: 'HIIT The Beat', trainer: 'With G', image: '',
-    desc: 'A high-energy workout synced to the rhythm of the music! Push your limits with intervals designed to torch calories and build endurance.' },
   { id: 'yoga', icon: 'clock', name: 'Yoga Sweat', trainer: 'With Veronika', image: '',
     desc: 'A high-energy class that blends yoga flow with strength and cardio. Find your balance, build flexibility, and leave feeling energised.' },
-  { id: 'next', icon: 'bars', name: '"Next Level"', trainer: 'With G', image: '',
-    desc: 'Take your strength and conditioning to the next level. A challenging full-body class designed to push your fitness boundaries.' },
+  { id: 'circuit', icon: 'bolt', name: 'Full Body Circuit', trainer: 'With Gee', image: '',
+    desc: 'Station-to-station work that hits every major muscle group. Build strength and conditioning in one high-energy hour.' },
+  { id: 'pilates', icon: 'bars', name: 'Pilates', trainer: 'With Antonia', image: '',
+    desc: 'Controlled, core-focused movement to build strength, stability and flexibility. Great alongside your gym training.' },
+  { id: 'boxing', icon: 'dumbbell', name: 'Boxing Class', trainer: 'With Mohamed', image: '',
+    desc: 'Come ready to train, build strength and sharpen your boxing skills. All levels welcome.' },
 ];
 
 export function esc(s) {
