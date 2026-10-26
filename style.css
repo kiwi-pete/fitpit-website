@@ -2630,6 +2630,13 @@ button {
   margin-top: 2px;
 }
 
+.tt-class.is-cancelled .tt-class-name {
+  text-decoration: line-through;
+  text-decoration-color: #e5484d;
+  text-decoration-thickness: 2px;
+  color: var(--color-text-muted);
+}
+
 .tt-class-trainer {
   font-size: var(--text-xs);
   color: var(--color-text-muted);

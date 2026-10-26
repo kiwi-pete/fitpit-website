@@ -1463,6 +1463,7 @@ function csSpacesLabel(n) {
 
 // "spaces left + Register" (or "Class full") block for one schedule entry.
 function csRegHTML(e) {
+  if (e && e.cancelled) return '<div class="tt-class-reg"><span class="tt-spaces full">Cancelled</span></div>';
   if (!e || !e.classId) return '';
   const cap = e.capacity != null ? e.capacity : 12;
   const spaces = Math.max(0, cap - (e.registered || 0));
@@ -1584,7 +1585,7 @@ function csSubmitReg(reg) {
           const t = tById[e.templateId] || {};
           const url = csSafeUrl(t.image || '');
           const img = url ? `<div class="tt-class-img"><img src="${csEsc(url)}" alt="${csEsc(e.name)}" loading="lazy" /></div>` : '';
-          html += `<div class="tt-class${url ? ' has-img' : ''}" style="--c:${csSafeColor(t.color)}">
+          html += `<div class="tt-class${url ? ' has-img' : ''}${e.cancelled ? ' is-cancelled' : ''}" style="--c:${csSafeColor(t.color)}">
             ${img}
             <div class="tt-class-body">
               <div class="tt-class-time">${csEsc(csFmt(e.start_time))}${e.end_time ? ' – ' + csEsc(csFmt(e.end_time)) : ''}</div>
