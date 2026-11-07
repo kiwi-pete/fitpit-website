@@ -153,7 +153,7 @@ async function readAppClasses(ownGids, templates, lookbackDays = 0) {
   const floor = isoDaysAgo(lookbackDays);
   const rows = await sb(
     `classes?date=gte.${floor}` +
-      `&select=id,name,description,instructor,date,start_time,end_time,max_capacity,recurrence_group_id` +
+      `&select=id,name,description,instructor,date,start_time,end_time,max_capacity,recurrence_group_id,cancelled` +
       `&order=date.asc,start_time.asc`
   );
   const own = new Set((ownGids || []).filter((g) => uuidRe.test(g)));
@@ -180,6 +180,7 @@ async function readAppClasses(ownGids, templates, lookbackDays = 0) {
       classId: r.id,
       capacity: r.max_capacity != null ? r.max_capacity : 12,
       registered: counts[r.id] || 0,
+      cancelled: !!r.cancelled,
       source: 'app',
     };
   });
