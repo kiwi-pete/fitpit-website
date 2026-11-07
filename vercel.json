@@ -2,6 +2,9 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "redirects": [
+    { "source": "/loyalty/", "destination": "/loyalty", "permanent": true }
+  ],
   "rewrites": [
     { "source": "/secretadminlink", "destination": "/secretadminlink.html" },
     { "source": "/daypass-waiver", "destination": "/daypass-waiver.html" },
