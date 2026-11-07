@@ -346,6 +346,24 @@ if (loyaltyModal && openLoyaltyBtn && closeLoyaltyBtn) {
 
   // Restore scrolling if the dialog is dismissed via the Escape key
   loyaltyModal.addEventListener('close', unlockScroll);
+
+  // Deep link: www.fitpitznz.com/loyalty (or /#loyalty) jumps to the Loyalty
+  // Discount teaser under Passes and opens the details modal.
+  const isLoyaltyLink =
+    location.pathname.replace(/\/+$/, '') === '/loyalty' || location.hash === '#loyalty';
+  if (isLoyaltyLink && !FP_EDIT_MODE) {
+    const openFromLink = () => {
+      const headerHeight = header ? header.offsetHeight : 80;
+      const top = openLoyaltyBtn.getBoundingClientRect().top + window.scrollY - headerHeight - 20;
+      window.scrollTo({ top, behavior: 'auto' });
+      if (!loyaltyModal.open) {
+        loyaltyModal.showModal();
+        lockScroll();
+      }
+    };
+    if (document.readyState === 'complete') openFromLink();
+    else window.addEventListener('load', openFromLink, { once: true });
+  }
 }
 
 /* ==================== Membership Agreement Wizard Controller & Homepage Form ==================== */
