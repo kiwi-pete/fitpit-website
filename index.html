@@ -68,6 +68,7 @@
     <div class="hero-overlay"></div>
 
     <div class="hero-content">
+      <a href="#sunday" class="hero-promo-pill" data-edit="hero.sundayPill">Every Sunday: $5 Full Day Pass</a>
       <p class="hero-tagline" data-edit="hero.tagline">Kiwengwa · East Coast · Zanzibar</p>
       <h1 class="hero-title"><span data-edit="hero.title.pre">WELCOME TO</span><br /><span class="accent-text" data-edit="hero.title.accent">FIT PIT</span></h1>
       <p class="hero-subtitle" data-edit="hero.subtitle">Premium fitness centre on the East Coast of Zanzibar. Train hard, recover well, and embrace island life.</p>
@@ -130,12 +131,28 @@
         <p class="section-subtitle reveal reveal-delay-2" style="font-size: var(--text-sm); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: var(--space-xs);" data-edit="passes.currencyNote">All Prices in USD</p>
       </div>
 
+      <!-- Sunday $5 Happy Day promo -->
+      <div class="sunday-promo reveal reveal-delay-2" id="sunday">
+        <div class="sunday-promo-text">
+          <p class="sunday-promo-label" data-edit="sunday.label">Happy Day · Every Sunday</p>
+          <h3 class="sunday-promo-title" data-edit="sunday.title">Full Day Pass for just $5</h3>
+          <p class="sunday-promo-swahili" data-edit="sunday.swahili">Jumapili Tuko Wazi</p>
+          <p class="sunday-promo-desc" data-edit="sunday.desc">Our happy hour price — all day long! Walk in any time we're open on a Sunday.</p>
+        </div>
+        <div class="sunday-promo-price">
+          <span class="sunday-promo-tag" data-edit="sunday.tag">Full Day Pass</span>
+          <span class="sunday-promo-usd" data-edit="sunday.usd">$5</span>
+          <span class="sunday-promo-tsh" data-edit="sunday.tsh">15,000 TSH</span>
+        </div>
+      </div>
+
       <div class="pricing-grid">
         <!-- Daily Pass -->
         <div class="pricing-card reveal">
           <h3 data-edit="passes.daily.name">Daily Pass</h3>
           <div class="price" data-edit="passes.daily.price">$10</div>
           <div class="price-period" data-edit="passes.daily.period">per visit</div>
+          <a href="#sunday" class="daily-sunday-note" data-edit="passes.daily.sunday">Sundays: just $5 all day</a>
           <ul class="pricing-features">
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-edit="passes.daily.feat0">Full gym access</span></li>
             <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span data-edit="passes.daily.feat1">All equipment</span></li>
@@ -693,6 +710,7 @@
             <span class="price-tsh"><span data-edit="modal.daily.tsh">25,000</span> <span class="currency-label">TSH</span></span>
           </div>
           <p class="price-period" data-edit="modal.daily.period">per visit</p>
+          <p class="daily-sunday-note" data-edit="modal.daily.sunday">Every Sunday: $5 USD / 15,000 TSH full day pass</p>
         </div>
 
         <div class="pricing-modal-info-card">
