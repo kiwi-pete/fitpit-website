@@ -1,11 +1,19 @@
 import nodemailer from 'nodemailer';
 import { syncMemberToGymManager } from './_gym-manager.js';
 
+// Who is told about a new sign-up: the owner and the front desk's shared inbox (the reception
+// "Admins" login), so the desk knows to expect them and take the first payment. Override with
+// SIGNUP_NOTIFY_EMAILS (comma-separated) in Vercel.
+const SIGNUP_NOTIFY_EMAILS = (process.env.SIGNUP_NOTIFY_EMAILS || 'petergrant01@gmail.com,fitpitadmins@gmail.com')
+  .split(',')
+  .map((e) => e.trim())
+  .filter(Boolean);
+
 // One-line summary of the Gym Manager sync result for the admin email.
 function gymManagerSummary(gm) {
   switch (gm && gm.status) {
     case 'created':
-      return `Created as an INACTIVE, UNPAID member (id ${gm.memberId}). The signed agreement PDF is attached to their account. Use "Renew / Add Payment" in Gym Manager to activate them once payment is received.`;
+      return `Created as an INACTIVE, UNPAID member (id ${gm.memberId}). The signed agreement PDF is attached to their account. They are listed on the Gym Manager Dashboard under "Signed up, not paid yet". Use "Renew / Add Payment" to activate them once payment is received.`;
     case 'created_without_agreement':
       return `Created as an INACTIVE, UNPAID member (id ${gm.memberId}), but the agreement PDF could not be attached automatically — please attach it manually from this email.`;
     case 'duplicate':
@@ -61,7 +69,7 @@ export default async function handler(req, res) {
 
     const mailOptions = {
       from: SMTP_USER || 'no-reply@fitpitznz.com',
-      to: 'petergrant01@gmail.com',
+      to: SIGNUP_NOTIFY_EMAILS,
       subject: `New Membership Agreement: ${first_name} ${last_name}`,
       text: `
 A new Fit Pit Membership Agreement has been submitted.
