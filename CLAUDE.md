@@ -42,6 +42,25 @@ candidate in Vercel if something looks wrong.
 - Never annotate dynamic regions with `data-edit`: the `#class-schedule` grid,
   `#footer-year`, and the membership-agreement modal are intentionally excluded.
 
+## Membership sign-up form (QR code / `/join`) on a weak connection
+
+- The whole sign-up (details, signature, ID photo) is one JSON request to
+  `api/submit-agreement.js`, and **Vercel refuses any request over 4.5 MB**. So the ID
+  photo is always shrunk in the browser first (`prepareIdFile` in `signup-upload.js`:
+  longest side 2000px JPEG, stepping down until it is about 1.2 MB). Never send a
+  photo as the camera took it. PDFs can't be shrunk and are capped at 2.5 MB.
+- **The photo ID is optional.** "Skip for now" on the ID step, or "Send without ID
+  photo" after a failed send, submits without it. The member record's Comments and
+  the email to the desk then say no ID was uploaded, so the desk checks it and adds
+  it to the profile in Gym Manager.
+- `postAgreement` retries a dropped send (3 tries) and reports failures with a code
+  the form turns into plain words (`submitFailureMessage`). "Try Again" re-sends the
+  same form; nothing is re-entered.
+- Each time the form opens it gets a `submission_id` (a UUID) that becomes the new
+  member's id. A re-send of the same form is recognised by that id
+  (`already_submitted` in `api/_gym-manager.js`) — no second member, no second
+  round of emails. Keep it if the form is reworked, or retries will duplicate.
+
 ## CSS / responsive notes
 
 - `style.css` is a single large stylesheet. **Responsive media-query overrides
