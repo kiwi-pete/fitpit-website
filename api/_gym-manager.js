@@ -257,6 +257,39 @@ export async function buildAgreementPdf({ member, signature, idDoc, baseUrl }) {
   return pdfDoc.save();
 }
 
+// The photo ID on its own as well, in the same place and shape the Gym Manager app uses
+// for an ID added at the desk (members.idDocument, `member-ids/` folder), so the profile's
+// Government ID box and the member list's ID marker show it.
+const ID_FOLDER = 'member-ids';
+const ID_TYPES = { 'image/jpeg': 'jpg', 'image/jpg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'application/pdf': 'pdf' };
+
+async function uploadIdDocument(idDoc, memberName) {
+  if (!idDoc || !idDoc.base64) return null;
+  const contentType = String(idDoc.mimeType || '').toLowerCase();
+  const ext = ID_TYPES[contentType];
+  if (!ext) return null;
+  const safe = String(memberName || 'member').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
+  const path = `${ID_FOLDER}/${Date.now()}_${safe}_id.${ext}`;
+  const up = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+    method: 'POST',
+    headers: {
+      apikey: SERVICE_KEY,
+      Authorization: `Bearer ${SERVICE_KEY}`,
+      'Content-Type': contentType,
+      'x-upsert': 'true',
+      'Cache-Control': 'private, max-age=31536000',
+    },
+    body: dataUrlToBuffer(idDoc.base64),
+  });
+  if (!up.ok) throw new Error(`ID upload failed: ${up.status} ${await up.text()}`);
+  return {
+    name: `Government ID - ${memberName}.${ext}`,
+    url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`,
+    uploadedAt: new Date().toISOString(),
+    contentType,
+  };
+}
+
 async function uploadAgreement(bytes, memberName) {
   const safe = String(memberName || 'member').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 40);
   const path = `${AGREEMENT_FOLDER}/${Date.now()}_${safe}.pdf`;
@@ -290,13 +323,17 @@ async function uploadAgreement(bytes, memberName) {
 //   - No transaction is created either way, so Financials stays untouched.
 // The selected term and requested start date are preserved (tier + comments)
 // so the admin knows what the member signed up for.
-async function createUnpaidMember({ member, tier, agreement }) {
+async function createUnpaidMember({ member, tier, agreement, idDocument }) {
   const id = randomUUID();
   const now = new Date().toISOString();
 
   const payload = {
     id,
     name: member.name,
+    // The app's own form keeps first and last name separately; without these it splits the
+    // full name at the first space ("Mary Anne" + "Smith" would read as "Mary" + "Anne Smith").
+    firstName: member.firstName || null,
+    lastName: member.lastName || null,
     email: member.email,
     phone: member.phone,
     gender: 'not-specified',
@@ -308,6 +345,7 @@ async function createUnpaidMember({ member, tier, agreement }) {
     nextBillingDate: null,
     membershipHistory: [],
     membershipAgreement: agreement || null,
+    idDocument: idDocument || null,
     comments: member.comment,
     inviteStatus: 'pending',
   };
@@ -325,7 +363,9 @@ async function createUnpaidMember({ member, tier, agreement }) {
 export async function syncMemberToGymManager(fields, baseUrl) {
   if (!isConfigured()) return { status: 'skipped', reason: 'not_configured' };
 
-  const name = `${String(fields.first_name || '').trim()} ${String(fields.last_name || '').trim()}`.trim();
+  const firstName = String(fields.first_name || '').trim().replace(/\s+/g, ' ');
+  const lastName = String(fields.last_name || '').trim().replace(/\s+/g, ' ');
+  const name = `${firstName} ${lastName}`.trim();
   const email = String(fields.email || '').trim();
   const phone = String(fields.phone || '').trim();
 
@@ -370,8 +410,16 @@ export async function syncMemberToGymManager(fields, baseUrl) {
     console.error('Gym Manager agreement build/upload failed:', err);
   }
 
-  // 3) Create the member — pending, inactive, unpaid (no period, no transaction).
-  const created = await createUnpaidMember({ member: { name, email, phone, comment }, tier, agreement });
+  // 3) The photo ID on its own too (best-effort: it is inside the agreement PDF either way).
+  let idDocument = null;
+  try {
+    idDocument = await uploadIdDocument(fields.copy_of_id, name);
+  } catch (err) {
+    console.error('Gym Manager ID upload failed:', err);
+  }
+
+  // 4) Create the member — pending, inactive, unpaid (no period, no transaction).
+  const created = await createUnpaidMember({ member: { name, firstName, lastName, email, phone, comment }, tier, agreement, idDocument });
 
   return {
     status: agreement ? 'created' : 'created_without_agreement',
