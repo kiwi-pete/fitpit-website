@@ -817,6 +817,9 @@ if (agreementModal) {
       if (!phoneInput.value.trim()) {
         markInvalid(phoneInput, 'Phone number is required.');
         isValid = false;
+      } else if (!/\d/.test(phoneInput.value)) {
+        markInvalid(phoneInput, 'Please enter a phone number.');
+        isValid = false;
       }
     }
     
@@ -1246,6 +1249,9 @@ if (homepageForm) {
     const phoneInput = document.getElementById('homepage-phone');
     if (!phoneInput.value.trim()) {
       markHomepageInvalid(phoneInput, 'Phone number is required.');
+      isValid = false;
+    } else if (!/\d/.test(phoneInput.value)) {
+      markHomepageInvalid(phoneInput, 'Please enter a phone number.');
       isValid = false;
     }
     

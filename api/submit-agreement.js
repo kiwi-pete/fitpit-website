@@ -49,6 +49,13 @@ export default async function handler(req, res) {
     if (!first_name || !last_name || !email || !phone || !membership_term || !membership_start_date || !copy_of_id || !signature || !date_of_signing) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
+    // Gym Manager needs a real last name and a phone number with digits ("-" or "n/a" don't count).
+    if (!String(first_name).trim() || !String(last_name).trim()) {
+      return res.status(400).json({ error: 'Please enter your first and last name.' });
+    }
+    if (!/\d/.test(String(phone))) {
+      return res.status(400).json({ error: 'Please enter a phone number.' });
+    }
 
     // Create the new member in the shared "Gym Manager" app (unpaid, with the
     // signed agreement attached). Best-effort: any failure is logged and the
