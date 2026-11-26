@@ -3526,6 +3526,53 @@ button {
   box-shadow: 0 0 10px rgba(255, 51, 51, 0.15);
 }
 
+/* Hides the native file button; the drop zone around it opens the picker. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ID step: progress line and the "skip for now" link */
+.id-status-msg {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  min-height: 16px;
+  margin-top: var(--space-sm);
+}
+
+.btn-skip-id {
+  display: inline-block;
+  background: none;
+  border: none;
+  padding: var(--space-sm) 0;
+  margin-top: var(--space-sm);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-align: left;
+  cursor: pointer;
+}
+
+.status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.step-status p.status-id-note {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
 /* Wizard Status Screens (Step 5) */
 .step-status {
   text-align: center;

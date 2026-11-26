@@ -6,6 +6,7 @@
 // the admin dashboard, bots or crawlers). See analytics-client.js.
 import './analytics-client.js';
 import { publicCardHTML } from './classcards.js';
+import { prepareIdFile, postAgreement, submitFailureMessage, newSubmissionId, formatBytes } from './signup-upload.js';
 
 // ---------- Owner content overrides (WYSIWYG editor) ----------
 // The marketing copy + photos in index.html are the DEFAULTS. The admin's
@@ -515,6 +516,15 @@ const idErrorMsg = document.getElementById('id-error-msg');
 let uploadedFileBase64 = null;
 let uploadedFileName = '';
 let uploadedFileType = '';
+// The ID photo is optional: a member who can't upload it shows it at the front desk instead.
+let idSkipped = false;
+// True while a chosen photo is being shrunk; bumped so a slow one can't land after a newer pick.
+let idPreparing = false;
+let idPrepareRun = 0;
+// One id per sign-up, so the server can tell a retry of this form from a new member.
+let wizardSubmissionId = null;
+const btnSkipId = document.getElementById('btn-skip-id');
+const idStatusMsg = document.getElementById('id-status-msg');
 
 // Wizard Signature
 const wizardCanvas = document.getElementById('signature-canvas');
@@ -602,6 +612,13 @@ if (document.readyState === 'interactive' || document.readyState === 'complete')
   setDatesForElement(homepageStartDateInput, homepageSigningDateInput);
 }
 
+// The line under the spinner while the sign-up is being sent.
+const WIZARD_LOADING_TEXT = 'Sending your agreement… this can take a moment on a slow connection.';
+function setLoadingText(text) {
+  const el = document.getElementById('wizard-loading-text');
+  if (el) el.textContent = text || WIZARD_LOADING_TEXT;
+}
+
 // --- Wizard Modal Handlers ---
 if (agreementModal) {
   // Reset Wizard State
@@ -619,6 +636,11 @@ if (agreementModal) {
     uploadedFileBase64 = null;
     uploadedFileName = '';
     uploadedFileType = '';
+    idSkipped = false;
+    idPreparing = false;
+    idPrepareRun++;
+    wizardSubmissionId = newSubmissionId();
+    if (idStatusMsg) idStatusMsg.textContent = '';
     if (previewContainer) previewContainer.style.display = 'none';
     if (dropZone) {
       dropZone.style.display = 'block';
@@ -634,6 +656,7 @@ if (agreementModal) {
     selectSigTab('draw');
     
     // Reset Status Screens
+    setLoadingText();
     document.getElementById('wizard-status-loading').style.display = 'flex';
     document.getElementById('wizard-status-success').style.display = 'none';
     document.getElementById('wizard-status-error').style.display = 'none';
@@ -767,10 +790,17 @@ if (agreementModal) {
     closeSuccessBtn.addEventListener('click', closeAgreementModal);
   }
 
+  // "Try Again" re-sends the same form straight away (nothing has to be re-entered);
+  // "Send without ID photo" does the same minus the photo, which is most of the upload.
   const retryBtn = document.getElementById('btn-wizard-retry');
-  if (retryBtn) {
-    retryBtn.addEventListener('click', () => {
+  if (retryBtn) retryBtn.addEventListener('click', () => submitWizardForm());
+  const sendWithoutIdBtn = document.getElementById('btn-wizard-send-without-id');
+  if (sendWithoutIdBtn) sendWithoutIdBtn.addEventListener('click', () => submitWizardForm({ withoutId: true }));
+  const editFormBtn = document.getElementById('btn-wizard-edit');
+  if (editFormBtn) {
+    editFormBtn.addEventListener('click', () => {
       goToStep(totalSteps);
+      setLoadingText();
       document.getElementById('wizard-status-loading').style.display = 'flex';
       document.getElementById('wizard-status-error').style.display = 'none';
       wizardFooter.style.display = 'flex';
@@ -836,9 +866,13 @@ if (agreementModal) {
     }
     
     else if (step === 3) {
-      if (!uploadedFileBase64) {
+      if (idPreparing) {
+        // Still shrinking the photo — a second or two on most phones.
+        if (idErrorMsg) idErrorMsg.textContent = 'Just a moment — your photo is still being prepared.';
+        isValid = false;
+      } else if (!uploadedFileBase64 && !idSkipped) {
         if (dropZone) dropZone.classList.add('invalid');
-        if (idErrorMsg) idErrorMsg.textContent = 'Government photo ID is required to register.';
+        if (idErrorMsg) idErrorMsg.textContent = 'Add a photo of your ID, or tap “Skip for now” below to show it at the front desk instead.';
         isValid = false;
       } else {
         if (idErrorMsg) idErrorMsg.textContent = '';
@@ -920,42 +954,60 @@ if (agreementModal) {
     });
   }
 
-  const processUploadedFile = (file) => {
+  const processUploadedFile = async (file) => {
     if (idErrorMsg) idErrorMsg.textContent = '';
     if (dropZone) dropZone.classList.remove('invalid');
-    
-    const maxSize = 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      if (idErrorMsg) idErrorMsg.textContent = 'File is too large. Maximum size is 10MB.';
-      return;
-    }
-    
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
-      if (idErrorMsg) idErrorMsg.textContent = 'Unsupported file format. Please upload JPG, PNG, WEBP, or PDF.';
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      uploadedFileBase64 = e.target.result;
-      uploadedFileName = file.name;
-      uploadedFileType = file.type;
-      
+
+    const run = ++idPrepareRun;
+    idPreparing = true;
+    if (idStatusMsg) idStatusMsg.textContent = 'Preparing your photo…';
+    try {
+      // Phone photos are shrunk here before sending — see signup-upload.js.
+      const prepared = await prepareIdFile(file);
+      if (run !== idPrepareRun) return; // a newer pick, a skip or a reset took over
+
+      uploadedFileBase64 = prepared.dataUrl;
+      uploadedFileName = prepared.filename;
+      uploadedFileType = prepared.mimeType;
+      idSkipped = false;
+
       if (previewFileName) previewFileName.textContent = file.name;
-      if (previewFileSize) {
-        const sizeKB = (file.size / 1024).toFixed(1);
-        previewFileSize.textContent = sizeKB > 1000 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
-      }
-      
+      if (previewFileSize) previewFileSize.textContent = formatBytes(prepared.bytes);
       if (dropZone) dropZone.style.display = 'none';
       if (previewContainer) previewContainer.style.display = 'flex';
-    };
-    reader.onerror = () => {
-      if (idErrorMsg) idErrorMsg.textContent = 'Error reading file. Please try again.';
-    };
-    reader.readAsDataURL(file);
+    } catch (err) {
+      if (run !== idPrepareRun) return;
+      console.error('ID file error:', err);
+      if (dropZone) dropZone.classList.add('invalid');
+      if (idErrorMsg) {
+        idErrorMsg.textContent = `${(err && err.message) || 'We could not use that file.'} You can also tap “Skip for now” and show your ID at the front desk.`;
+      }
+    } finally {
+      if (run === idPrepareRun) {
+        idPreparing = false;
+        if (idStatusMsg) idStatusMsg.textContent = '';
+      }
+      // Let the same file be picked again after an error.
+      if (fileInput) fileInput.value = '';
+    }
   };
+
+  // Skipping never blocks the sign-up: the desk checks the ID and adds it to the profile.
+  if (btnSkipId) {
+    btnSkipId.addEventListener('click', () => {
+      idPrepareRun++;
+      idPreparing = false;
+      idSkipped = true;
+      uploadedFileBase64 = null;
+      uploadedFileName = '';
+      uploadedFileType = '';
+      if (idStatusMsg) idStatusMsg.textContent = '';
+      if (idErrorMsg) idErrorMsg.textContent = '';
+      if (dropZone) { dropZone.classList.remove('invalid'); dropZone.style.display = 'block'; }
+      if (previewContainer) previewContainer.style.display = 'none';
+      goToStep(4);
+    });
+  }
 
   if (btnRemoveFile) {
     btnRemoveFile.addEventListener('click', () => {
@@ -1021,58 +1073,74 @@ if (agreementModal) {
   }
 
   // Submit Wizard Form
-  const submitWizardForm = async () => {
+  let wizardSubmitting = false;
+  const submitWizardForm = async ({ withoutId = false } = {}) => {
+    if (wizardSubmitting) return;
+    wizardSubmitting = true;
     goToStep(5);
     wizardFooter.style.display = 'none';
-    
+    setLoadingText();
+    document.getElementById('wizard-status-loading').style.display = 'flex';
+    document.getElementById('wizard-status-error').style.display = 'none';
+
+    // Sending without the photo is a choice that sticks for this sign-up.
+    if (withoutId) {
+      idSkipped = true;
+      uploadedFileBase64 = null;
+      uploadedFileName = '';
+      uploadedFileType = '';
+    }
+    const hasId = !!uploadedFileBase64;
+
     const formData = new FormData(wizardForm);
     const payload = {
+      submission_id: wizardSubmissionId,
       first_name: formData.get('first_name'),
       last_name: formData.get('last_name'),
       email: formData.get('email'),
       phone: formData.get('phone'),
       membership_term: formData.get('membership_term'),
       membership_start_date: formData.get('membership_start_date'),
-      copy_of_id: {
-        base64: uploadedFileBase64,
-        filename: uploadedFileName,
-        mimeType: uploadedFileType
-      },
       date_of_signing: signingDateInput.value,
       signature: {
         type: wizardSigMode
       }
     };
-    
+    if (hasId) {
+      payload.copy_of_id = {
+        base64: uploadedFileBase64,
+        filename: uploadedFileName,
+        mimeType: uploadedFileType
+      };
+    } else {
+      payload.id_skipped = true;
+    }
+
     if (wizardSigMode === 'draw') {
       payload.signature.data = wizardSigPad.getDataURL();
     } else {
       payload.signature.data = wizardTypedSigInput.value.trim();
     }
-    
+
     try {
-      const response = await fetch('/api/submit-agreement', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
+      await postAgreement(payload, {
+        onRetry: (next, attempts) => setLoadingText(`The connection is unsteady — trying again (${next} of ${attempts})…`),
       });
-      
-      const result = await response.json();
-      
-      if (response.ok && result.success) {
-        window.fpTrack?.('conversion', { page: 'passes', label: 'Membership Agreement' });
-        document.getElementById('wizard-status-loading').style.display = 'none';
-        document.getElementById('wizard-status-success').style.display = 'flex';
-      } else {
-        throw new Error(result.error || 'Server rejected submission');
-      }
+      window.fpTrack?.('conversion', { page: 'passes', label: 'Membership Agreement' });
+      const idNote = document.getElementById('wizard-success-id-note');
+      if (idNote) idNote.style.display = hasId ? 'none' : 'block';
+      document.getElementById('wizard-status-loading').style.display = 'none';
+      document.getElementById('wizard-status-success').style.display = 'flex';
     } catch (error) {
       console.error('Wizard submission error:', error);
-      document.getElementById('wizard-error-text').textContent = error.message || 'There was a problem submitting your agreement. Please try again.';
+      document.getElementById('wizard-error-text').textContent = submitFailureMessage(error, { hasId });
+      const withoutIdBtn = document.getElementById('btn-wizard-send-without-id');
+      // Dropping the photo only helps when the trouble is getting the form through.
+      if (withoutIdBtn) withoutIdBtn.style.display = hasId && error.code !== 'rejected' ? 'inline-flex' : 'none';
       document.getElementById('wizard-status-loading').style.display = 'none';
       document.getElementById('wizard-status-error').style.display = 'flex';
+    } finally {
+      wizardSubmitting = false;
     }
   };
 }

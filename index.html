@@ -1035,15 +1035,15 @@
         <!-- STEP 3: ID Upload -->
         <div class="wizard-step" data-step="3">
           <div class="form-group">
-            <label>Copy of Government ID *</label>
-            <p class="field-desc">Please upload a copy of your government issued photo ID (passport, national ID, or driver license).</p>
+            <label>Copy of Government ID</label>
+            <p class="field-desc">Please add a photo of your government issued photo ID (passport, national ID, or driver license).</p>
             
             <div class="drag-drop-zone" id="id-drop-zone">
-              <input type="file" id="wizard-id-file" name="copy_of_id" accept="image/*,application/pdf" class="visually-hidden" required>
+              <input type="file" id="wizard-id-file" name="copy_of_id" accept="image/*,application/pdf" class="visually-hidden">
               <div class="drop-zone-content">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="upload-icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                <p class="drop-zone-text">Drag and drop your file here or <span class="highlight">Browse</span></p>
-                <p class="drop-zone-limits">Supported formats: JPG, PNG, WEBP, PDF (Max 10MB)</p>
+                <p class="drop-zone-text">Tap to take a photo or choose a file</p>
+                <p class="drop-zone-limits">Photo or PDF. Large photos are made smaller automatically.</p>
               </div>
             </div>
             <div class="file-preview-container" id="file-preview-container" style="display: none;">
@@ -1056,7 +1056,9 @@
               </div>
               <button type="button" class="btn-remove-file" id="btn-remove-file" aria-label="Remove file">&times;</button>
             </div>
-            <div class="error-msg" id="id-error-msg"></div>
+            <div class="id-status-msg" id="id-status-msg" aria-live="polite"></div>
+            <div class="error-msg" id="id-error-msg" role="alert"></div>
+            <button type="button" class="btn-skip-id" id="btn-skip-id">Can’t add it now? Skip for now — show your ID at the front desk</button>
           </div>
         </div>
 
@@ -1186,7 +1188,7 @@
           <!-- Loading State -->
           <div class="status-loading" id="wizard-status-loading">
             <div class="spinner"></div>
-            <p>Submitting agreement and uploading documents...</p>
+            <p id="wizard-loading-text" aria-live="polite">Sending your agreement… this can take a moment on a slow connection.</p>
           </div>
           
           <!-- Success State -->
@@ -1195,15 +1197,21 @@
             <h4>Welcome to Fit Pit ZNZ!</h4>
             <p>Thanks! We have received your membership agreement. A copy of the form has been sent to your email.</p>
             <p class="subtext">Our team will verify your details and get back to you shortly.</p>
+            <p class="status-id-note" id="wizard-success-id-note" style="display: none;">Please show your photo ID at the front desk — it was not included with this form.</p>
             <button type="button" class="btn btn-primary" id="btn-wizard-close-success">Close</button>
           </div>
 
           <!-- Error State -->
           <div class="status-error" id="wizard-status-error" style="display: none;">
             <svg class="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <h4>Submission Failed</h4>
-            <p id="wizard-error-text">There was a problem submitting your agreement. Please try again.</p>
-            <button type="button" class="btn btn-outline" id="btn-wizard-retry">Try Again</button>
+            <h4>Not sent yet</h4>
+            <p id="wizard-error-text" role="alert">There was a problem submitting your agreement. Please try again.</p>
+            <div class="status-actions">
+              <button type="button" class="btn btn-primary" id="btn-wizard-retry">Try Again</button>
+              <button type="button" class="btn btn-outline" id="btn-wizard-send-without-id" style="display: none;">Send without ID photo</button>
+            </div>
+            <button type="button" class="btn-skip-id" id="btn-wizard-edit">Go back and check my details</button>
+            <p class="subtext">Still stuck? The front desk can sign you up on their device.</p>
           </div>
         </div>
 

@@ -39,6 +39,8 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const BUCKET = 'gym-manager';
 const AGREEMENT_FOLDER = 'member-agreements';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export function isConfigured() {
   return !!SERVICE_KEY;
 }
@@ -338,8 +340,8 @@ async function uploadAgreement(bytes, memberName) {
 //   - No transaction is created either way, so Financials stays untouched.
 // The selected term and requested start date are preserved (tier + comments)
 // so the admin knows what the member signed up for.
-async function createUnpaidMember({ member, tier, agreement, idDocument }) {
-  const id = randomUUID();
+async function createUnpaidMember({ id: givenId, member, tier, agreement, idDocument }) {
+  const id = givenId || randomUUID();
   const now = new Date().toISOString();
 
   const payload = {
@@ -387,6 +389,16 @@ export async function syncMemberToGymManager(fields, baseUrl) {
   const tier = mapTerm(fields.membership_term);
   if (!tier) return { status: 'skipped', reason: 'unknown_term', term: fields.membership_term };
 
+  // 0) A re-send of a sign-up that already went through. The phone gives each sign-up its
+  //    own id and re-sends the form when the connection drops before our reply reaches it;
+  //    that id becomes the member's id, so a repeat is recognised here (or, if two copies
+  //    race each other, by the insert below failing on the duplicate id).
+  const submissionId = UUID_RE.test(String(fields.submission_id || '')) ? String(fields.submission_id).toLowerCase() : null;
+  if (submissionId) {
+    const sent = (await sb(`members?select=id&id=eq.${submissionId}`)) || [];
+    if (sent.length) return { status: 'already_submitted', memberId: submissionId };
+  }
+
   // 1) Duplicate guard — never create a second record for an existing member (same first
   //    name and same email or phone). Someone else sharing the email or phone is fine.
   const { existing, sharedWith } = await findExistingMember(email, phone, firstName);
@@ -398,10 +410,12 @@ export async function syncMemberToGymManager(fields, baseUrl) {
     ? fields.membership_start_date
     : new Date().toISOString().slice(0, 10);
 
+  const hasId = !!(fields.copy_of_id && fields.copy_of_id.base64);
   const comment =
     `Self-registered via fitpitznz.com membership wizard — UNPAID / pending. ` +
     `Requested: ${fields.membership_term || 'membership'}, start ${startDate}. ` +
-    `Use "Renew / Add Payment" to activate once payment is received.`;
+    `Use "Renew / Add Payment" to activate once payment is received.` +
+    (hasId ? '' : ` NO PHOTO ID was uploaded — check their ID at the desk and add it to this profile.`);
 
   // 2) Build + upload the signed agreement PDF (resilient — a failure here
   //    must not stop the member from being created).
@@ -435,7 +449,16 @@ export async function syncMemberToGymManager(fields, baseUrl) {
   }
 
   // 4) Create the member — pending, inactive, unpaid (no period, no transaction).
-  const created = await createUnpaidMember({ member: { name, firstName, lastName, email, phone, comment }, tier, agreement, idDocument });
+  let created;
+  try {
+    created = await createUnpaidMember({ id: submissionId, member: { name, firstName, lastName, email, phone, comment }, tier, agreement, idDocument });
+  } catch (err) {
+    // Two copies of the same sign-up arrived together and the other one got there first.
+    if (submissionId && /-> 409|23505|duplicate key/i.test(String(err && err.message))) {
+      return { status: 'already_submitted', memberId: submissionId };
+    }
+    throw err;
+  }
 
   return {
     status: agreement ? 'created' : 'created_without_agreement',
