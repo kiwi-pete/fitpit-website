@@ -11,13 +11,20 @@ const SIGNUP_NOTIFY_EMAILS = (process.env.SIGNUP_NOTIFY_EMAILS || 'petergrant01@
 
 // One-line summary of the Gym Manager sync result for the admin email.
 function gymManagerSummary(gm) {
+  const shared = gm && gm.sharedWith
+    ? ` Note: ${gm.sharedWith.name} (id ${gm.sharedWith.id}) uses the same ${gm.sharedWith.matchedOn === 'email' ? 'email address' : 'phone number'}. Check they are two different people.`
+    : '';
+  return gymManagerStatus(gm) + shared;
+}
+
+function gymManagerStatus(gm) {
   switch (gm && gm.status) {
     case 'created':
       return `Created as an INACTIVE, UNPAID member (id ${gm.memberId}). The signed agreement PDF is attached to their account. They are listed on the Gym Manager Dashboard under "Signed up, not paid yet". Use "Renew / Add Payment" to activate them once payment is received.`;
     case 'created_without_agreement':
       return `Created as an INACTIVE, UNPAID member (id ${gm.memberId}), but the agreement PDF could not be attached automatically — please attach it manually from this email.`;
     case 'duplicate':
-      return `An existing member already matches by ${gm.matchedOn} (id ${gm.memberId}) — no duplicate was created.`;
+      return `Already a member: ${gm.name} (id ${gm.memberId}) has the same first name and ${gm.matchedOn === 'email' ? 'email address' : 'phone number'}, so no new member was created. Take their payment with "Renew / Add Payment" on their existing record.`;
     case 'skipped':
       return `Not created automatically (${gm.reason || 'skipped'}). Please add the member manually if needed.`;
     case 'error':

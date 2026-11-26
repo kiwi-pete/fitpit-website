@@ -18,8 +18,9 @@
        into a single PDF, uploaded to the shared `gym-manager`
        storage bucket, and attached via members.membershipAgreement.
 
-   Before creating, we skip if an existing member already matches by
-   email (case-insensitive) or phone (digits-normalised).
+   Before creating, we skip if this person is already a member: same first
+   name AND the same email (case-insensitive) or phone (digits-normalised).
+   A shared email or phone with a different first name is a different person.
 
    This module is intentionally additive and side-effect-safe:
    any failure here is caught by the caller and never blocks the
@@ -96,20 +97,34 @@ function phonesMatch(a, b) {
   return false;
 }
 
-// Returns { id, name, matchedOn } for the first existing member matching the
-// given email or phone, or null. The members table is small (~50 rows) so we
-// fetch the minimal columns and compare in JS (handles phone normalisation
-// that PostgREST can't express).
-export async function findExistingMember(email, phone) {
+// First word of a first name, lower-cased and without accents: "Mary Anne" -> "mary".
+const firstWord = (s) =>
+  String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase().split(/\s+/)[0] || '';
+
+// Looks for this person among the existing members. A matching email or phone number alone
+// doesn't make it the same person: couples, families and friends often share one phone or
+// email. It is the same person only when the first name matches as well.
+// Returns { existing: { id, name, matchedOn } | null, sharedWith: { id, name, matchedOn } | null }:
+// `existing` = this person is already a member; `sharedWith` = someone else already uses
+// this email or phone (the new member is still created; the email to the desk says so).
+// The members table is small, so we fetch the minimal columns and compare in JS (handles
+// phone normalisation that PostgREST can't express).
+export async function findExistingMember(email, phone, firstName) {
   const wantEmail = normEmail(email);
-  const rows = (await sb('members?select=id,name,email,phone')) || [];
-  if (wantEmail) {
-    const hit = rows.find((m) => normEmail(m.email) === wantEmail);
-    if (hit) return { id: hit.id, name: hit.name, matchedOn: 'email' };
+  const wantFirst = firstWord(firstName);
+  const rows = (await sb('members?select=id,name,firstName,email,phone')) || [];
+  const contactMatch = (m) =>
+    (wantEmail && normEmail(m.email) === wantEmail) ? 'email' : (phonesMatch(m.phone, phone) ? 'phone' : null);
+  const sameFirst = (m) => !!wantFirst && firstWord(m.firstName || m.name) === wantFirst;
+
+  let sharedWith = null;
+  for (const m of rows) {
+    const matchedOn = contactMatch(m);
+    if (!matchedOn) continue;
+    if (sameFirst(m)) return { existing: { id: m.id, name: m.name, matchedOn }, sharedWith: null };
+    if (!sharedWith) sharedWith = { id: m.id, name: m.name, matchedOn };
   }
-  const hitPhone = rows.find((m) => phonesMatch(m.phone, phone));
-  if (hitPhone) return { id: hitPhone.id, name: hitPhone.name, matchedOn: 'phone' };
-  return null;
+  return { existing: null, sharedWith };
 }
 
 // ---- agreement PDF ---------------------------------------------------------
@@ -372,8 +387,9 @@ export async function syncMemberToGymManager(fields, baseUrl) {
   const tier = mapTerm(fields.membership_term);
   if (!tier) return { status: 'skipped', reason: 'unknown_term', term: fields.membership_term };
 
-  // 1) Duplicate guard — never create a second record for an existing member.
-  const existing = await findExistingMember(email, phone);
+  // 1) Duplicate guard — never create a second record for an existing member (same first
+  //    name and same email or phone). Someone else sharing the email or phone is fine.
+  const { existing, sharedWith } = await findExistingMember(email, phone, firstName);
   if (existing) {
     return { status: 'duplicate', memberId: existing.id, matchedOn: existing.matchedOn, name: existing.name };
   }
@@ -424,6 +440,7 @@ export async function syncMemberToGymManager(fields, baseUrl) {
   return {
     status: agreement ? 'created' : 'created_without_agreement',
     memberId: created.id,
+    sharedWith,
     tier: tier.tierId,
     agreementUrl: agreement ? agreement.url : null,
   };
