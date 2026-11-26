@@ -3,12 +3,14 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "redirects": [
-    { "source": "/loyalty/", "destination": "/loyalty", "permanent": true }
+    { "source": "/loyalty/", "destination": "/loyalty", "permanent": true },
+    { "source": "/join/", "destination": "/join", "permanent": true }
   ],
   "rewrites": [
     { "source": "/secretadminlink", "destination": "/secretadminlink.html" },
     { "source": "/daypass-waiver", "destination": "/daypass-waiver.html" },
-    { "source": "/loyalty", "destination": "/index.html" }
+    { "source": "/loyalty", "destination": "/index.html" },
+    { "source": "/join", "destination": "/index.html" }
   ],
   "headers": [
     {

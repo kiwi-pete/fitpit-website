@@ -488,7 +488,9 @@ function initSignaturePad(canvasEl, clearBtnEl, errorMsgEl) {
 // --- Wizard Modal Elements ---
 const agreementModal = document.getElementById('agreement-modal');
 const closeAgreementBtn = document.getElementById('close-agreement-modal');
-const joinBtns = document.querySelectorAll('.join-btn');
+// "Join" on a pass (pre-selects that pass) and "Sign Up" (no pass chosen yet: the member
+// picks the term in step 1) both open the membership agreement wizard.
+const joinBtns = document.querySelectorAll('.join-btn, .signup-btn');
 
 const wizardForm = document.getElementById('agreement-form');
 const wizardSteps = document.querySelectorAll('.wizard-step');
@@ -686,6 +688,16 @@ if (agreementModal) {
       }, 100);
     });
   });
+
+  // Deep link: www.fitpitznz.com/join (or /#join), e.g. from the QR code on the desk sign,
+  // opens the sign-up straight away at step 1 (term and start date).
+  const isJoinLink = location.pathname.replace(/\/+$/, '') === '/join' || location.hash === '#join';
+  const firstSignup = document.querySelector('.signup-btn');
+  if (isJoinLink && firstSignup && !FP_EDIT_MODE) {
+    const openFromLink = () => { if (!agreementModal.open) firstSignup.click(); };
+    if (document.readyState === 'complete') openFromLink();
+    else window.addEventListener('load', openFromLink, { once: true });
+  }
 
   const closeAgreementModal = () => {
     agreementModal.close();

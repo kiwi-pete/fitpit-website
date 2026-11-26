@@ -4059,3 +4059,11 @@ button {
     min-width: 0;
   }
 }
+
+/* Phones: with four hero buttons (Sign Up added) the stacked buttons reach the
+   "Scroll" hint at the bottom of the hero, so hide the hint there. */
+@media (max-width: 768px) {
+  .hero-scroll-indicator {
+    display: none;
+  }
+}
